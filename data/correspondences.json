@@ -1,0 +1,1224 @@
+{
+  "point_ids": [
+    "P0",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11",
+    "P12",
+    "P13",
+    "P14",
+    "P15",
+    "P16",
+    "P17",
+    "P18",
+    "P19",
+    "P20",
+    "P21",
+    "P22",
+    "P23",
+    "P24",
+    "P25",
+    "P26",
+    "P27",
+    "P28",
+    "P29",
+    "P30",
+    "P31",
+    "P32",
+    "P33"
+  ],
+  "marks": {
+    "P0": {
+      "05_front_center.jpg": [
+        187,
+        161
+      ],
+      "01_front_clean.jpg": [
+        293,
+        235
+      ],
+      "02_front_wide.jpg": [
+        173,
+        69
+      ],
+      "03_front_postcard.jpg": [
+        756,
+        516
+      ],
+      "04_front_elevated.jpg": [
+        256,
+        125
+      ],
+      "06_front_flags.jpg": [
+        231,
+        117
+      ],
+      "07_diagonal_left.jpg": [
+        300,
+        232
+      ],
+      "08_diagonal_right_soft.jpg": [
+        91,
+        56
+      ],
+      "10_diagonal_left.jpg": [
+        595,
+        197
+      ],
+      "12_front_trees.jpg": [
+        135,
+        107
+      ],
+      "13_front_heavy_trees.jpg": [
+        39,
+        47
+      ],
+      "14_front_pikiwiki.png": [
+        177,
+        112
+      ],
+      "09_diagonal_left_bw.jpg": [
+        294,
+        172
+      ]
+    },
+    "P1": {
+      "05_front_center.jpg": [
+        249,
+        81
+      ],
+      "01_front_clean.jpg": [
+        398,
+        96
+      ],
+      "02_front_wide.jpg": [
+        206,
+        22
+      ],
+      "03_front_postcard.jpg": [
+        1071,
+        99
+      ],
+      "04_front_elevated.jpg": [
+        303,
+        67
+      ],
+      "07_diagonal_left.jpg": [
+        375,
+        158
+      ],
+      "08_diagonal_right_soft.jpg": [
+        97,
+        24
+      ],
+      "10_diagonal_left.jpg": [
+        732,
+        70
+      ],
+      "11_side_right.jpg": [
+        56,
+        32
+      ],
+      "12_front_trees.jpg": [
+        200,
+        24
+      ],
+      "14_front_pikiwiki.png": [
+        234,
+        34
+      ],
+      "09_diagonal_left_bw.jpg": [
+        318,
+        73
+      ]
+    },
+    "P2": {
+      "05_front_center.jpg": [
+        286,
+        80
+      ],
+      "01_front_clean.jpg": [
+        462,
+        97
+      ],
+      "02_front_wide.jpg": [
+        228,
+        23
+      ],
+      "03_front_postcard.jpg": [
+        1262,
+        98
+      ],
+      "04_front_elevated.jpg": [
+        329,
+        67
+      ],
+      "07_diagonal_left.jpg": [
+        393,
+        170
+      ],
+      "08_diagonal_right_soft.jpg": [
+        109,
+        23
+      ],
+      "10_diagonal_left.jpg": [
+        782,
+        75
+      ],
+      "11_side_right.jpg": [
+        64,
+        31
+      ],
+      "14_front_pikiwiki.png": [
+        269,
+        33
+      ],
+      "09_diagonal_left_bw.jpg": [
+        346,
+        62
+      ]
+    },
+    "P3": {
+      "05_front_center.jpg": [
+        379,
+        77
+      ],
+      "01_front_clean.jpg": [
+        618,
+        92
+      ],
+      "02_front_wide.jpg": [
+        277,
+        21
+      ],
+      "03_front_postcard.jpg": [
+        1733,
+        98
+      ],
+      "04_front_elevated.jpg": [
+        395,
+        68
+      ],
+      "07_diagonal_left.jpg": [
+        433,
+        197
+      ],
+      "08_diagonal_right_soft.jpg": [
+        135,
+        17
+      ],
+      "10_diagonal_left.jpg": [
+        896,
+        93
+      ],
+      "11_side_right.jpg": [
+        85,
+        18
+      ],
+      "12_front_trees.jpg": [
+        335,
+        19
+      ],
+      "14_front_pikiwiki.png": [
+        357,
+        30
+      ],
+      "09_diagonal_left_bw.jpg": [
+        428,
+        28
+      ]
+    },
+    "P4": {
+      "05_front_center.jpg": [
+        417,
+        76
+      ],
+      "01_front_clean.jpg": [
+        683,
+        91
+      ],
+      "02_front_wide.jpg": [
+        300,
+        22
+      ],
+      "03_front_postcard.jpg": [
+        1921,
+        99
+      ],
+      "04_front_elevated.jpg": [
+        424,
+        69
+      ],
+      "07_diagonal_left.jpg": [
+        447,
+        207
+      ],
+      "08_diagonal_right_soft.jpg": [
+        148,
+        15
+      ],
+      "10_diagonal_left.jpg": [
+        936,
+        102
+      ],
+      "11_side_right.jpg": [
+        97,
+        13
+      ],
+      "12_front_trees.jpg": [
+        375,
+        18
+      ],
+      "14_front_pikiwiki.png": [
+        393,
+        30
+      ],
+      "09_diagonal_left_bw.jpg": [
+        467,
+        15
+      ]
+    },
+    "P5": {
+      "05_front_center.jpg": [
+        483,
+        154
+      ],
+      "04_front_elevated.jpg": [
+        467,
+        130
+      ],
+      "08_diagonal_right_soft.jpg": [
+        182,
+        45
+      ],
+      "11_side_right.jpg": [
+        133,
+        48
+      ],
+      "12_front_trees.jpg": [
+        450,
+        102
+      ],
+      "13_front_heavy_trees.jpg": [
+        243,
+        50
+      ],
+      "14_front_pikiwiki.png": [
+        451,
+        107
+      ],
+      "09_diagonal_left_bw.jpg": [
+        580,
+        99
+      ],
+      "01_front_clean.jpg": [
+        641,
+        93
+      ]
+    },
+    "P6": {
+      "04_front_elevated.jpg": [
+        31,
+        133
+      ],
+      "08_diagonal_right_soft.jpg": [
+        44,
+        65
+      ],
+      "09_diagonal_left_bw.jpg": [
+        159,
+        227
+      ],
+      "11_side_right.jpg": [
+        28,
+        104
+      ]
+    },
+    "P7": {
+      "04_front_elevated.jpg": [
+        105,
+        135
+      ],
+      "08_diagonal_right_soft.jpg": [
+        60,
+        63
+      ],
+      "09_diagonal_left_bw.jpg": [
+        206,
+        216
+      ],
+      "10_diagonal_left.jpg": [
+        95,
+        176
+      ],
+      "11_side_right.jpg": [
+        43,
+        101
+      ],
+      "02_front_wide.jpg": [
+        57,
+        78
+      ]
+    },
+    "P8": {
+      "04_front_elevated.jpg": [
+        624,
+        150
+      ],
+      "07_diagonal_left.jpg": [
+        460,
+        340
+      ],
+      "10_diagonal_left.jpg": [
+        1123,
+        264
+      ],
+      "02_front_wide.jpg": [
+        450,
+        79
+      ]
+    },
+    "P9": {
+      "04_front_elevated.jpg": [
+        705,
+        151
+      ],
+      "07_diagonal_left.jpg": [
+        492,
+        352
+      ]
+    },
+    "P10": {
+      "06_front_flags.jpg": [
+        278,
+        248
+      ],
+      "05_front_center.jpg": [
+        217,
+        245
+      ],
+      "04_front_elevated.jpg": [
+        273,
+        184
+      ],
+      "03_front_postcard.jpg": [
+        909,
+        948
+      ],
+      "02_front_wide.jpg": [
+        188,
+        115
+      ],
+      "01_front_clean.jpg": [
+        343,
+        374
+      ],
+      "07_diagonal_left.jpg": [
+        319,
+        349
+      ],
+      "10_diagonal_left.jpg": [
+        639,
+        357
+      ],
+      "12_front_trees.jpg": [
+        162,
+        195
+      ],
+      "13_front_heavy_trees.jpg": [
+        59,
+        106
+      ],
+      "14_front_pikiwiki.png": [
+        207,
+        191
+      ]
+    },
+    "P11": {
+      "06_front_flags.jpg": [
+        303,
+        249
+      ],
+      "05_front_center.jpg": [
+        232,
+        245
+      ],
+      "04_front_elevated.jpg": [
+        285,
+        185
+      ],
+      "03_front_postcard.jpg": [
+        986,
+        948
+      ],
+      "02_front_wide.jpg": [
+        197,
+        115
+      ],
+      "01_front_clean.jpg": [
+        368,
+        374
+      ],
+      "07_diagonal_left.jpg": [
+        329,
+        351
+      ],
+      "10_diagonal_left.jpg": [
+        657,
+        357
+      ],
+      "14_front_pikiwiki.png": [
+        220,
+        191
+      ]
+    },
+    "P12": {
+      "06_front_flags.jpg": [
+        409,
+        213
+      ],
+      "05_front_center.jpg": [
+        301,
+        223
+      ],
+      "04_front_elevated.jpg": [
+        335,
+        169
+      ],
+      "03_front_postcard.jpg": [
+        1330,
+        832
+      ],
+      "02_front_wide.jpg": [
+        234,
+        103
+      ],
+      "01_front_clean.jpg": [
+        485,
+        333
+      ],
+      "07_diagonal_left.jpg": [
+        401,
+        340
+      ],
+      "08_diagonal_right_soft.jpg": [
+        113,
+        76
+      ],
+      "09_diagonal_left_bw.jpg": [
+        352,
+        224
+      ],
+      "10_diagonal_left.jpg": [
+        799,
+        327
+      ],
+      "14_front_pikiwiki.png": [
+        284,
+        169
+      ]
+    },
+    "P13": {
+      "06_front_flags.jpg": [
+        435,
+        212
+      ],
+      "05_front_center.jpg": [
+        317,
+        222
+      ],
+      "04_front_elevated.jpg": [
+        346,
+        170
+      ],
+      "03_front_postcard.jpg": [
+        1407,
+        833
+      ],
+      "02_front_wide.jpg": [
+        243,
+        102
+      ],
+      "01_front_clean.jpg": [
+        510,
+        333
+      ],
+      "07_diagonal_left.jpg": [
+        408,
+        343
+      ],
+      "08_diagonal_right_soft.jpg": [
+        116,
+        76
+      ],
+      "09_diagonal_left_bw.jpg": [
+        366,
+        222
+      ],
+      "10_diagonal_left.jpg": [
+        813,
+        327
+      ],
+      "14_front_pikiwiki.png": [
+        299,
+        169
+      ]
+    },
+    "P14": {
+      "06_front_flags.jpg": [
+        449,
+        213
+      ],
+      "05_front_center.jpg": [
+        326,
+        222
+      ],
+      "04_front_elevated.jpg": [
+        354,
+        170
+      ],
+      "03_front_postcard.jpg": [
+        1457,
+        831
+      ],
+      "02_front_wide.jpg": [
+        248,
+        103
+      ],
+      "01_front_clean.jpg": [
+        528,
+        334
+      ],
+      "07_diagonal_left.jpg": [
+        413,
+        344
+      ],
+      "08_diagonal_right_soft.jpg": [
+        119,
+        76
+      ],
+      "09_diagonal_left_bw.jpg": [
+        374,
+        221
+      ],
+      "10_diagonal_left.jpg": [
+        832,
+        330
+      ],
+      "11_side_right.jpg": [
+        73,
+        101
+      ],
+      "13_front_heavy_trees.jpg": [
+        138,
+        89
+      ],
+      "14_front_pikiwiki.png": [
+        308,
+        169
+      ]
+    },
+    "P15": {
+      "06_front_flags.jpg": [
+        475,
+        213
+      ],
+      "05_front_center.jpg": [
+        342,
+        221
+      ],
+      "04_front_elevated.jpg": [
+        365,
+        170
+      ],
+      "03_front_postcard.jpg": [
+        1534,
+        832
+      ],
+      "02_front_wide.jpg": [
+        256,
+        102
+      ],
+      "01_front_clean.jpg": [
+        553,
+        333
+      ],
+      "07_diagonal_left.jpg": [
+        418,
+        346
+      ],
+      "08_diagonal_right_soft.jpg": [
+        124,
+        76
+      ],
+      "09_diagonal_left_bw.jpg": [
+        389,
+        219
+      ],
+      "12_front_trees.jpg": [
+        293,
+        168
+      ],
+      "13_front_heavy_trees.jpg": [
+        149,
+        89
+      ],
+      "14_front_pikiwiki.png": [
+        323,
+        169
+      ]
+    },
+    "P16": {
+      "06_front_flags.jpg": [
+        489,
+        213
+      ],
+      "05_front_center.jpg": [
+        351,
+        221
+      ],
+      "04_front_elevated.jpg": [
+        372,
+        170
+      ],
+      "03_front_postcard.jpg": [
+        1584,
+        834
+      ],
+      "02_front_wide.jpg": [
+        262,
+        102
+      ],
+      "01_front_clean.jpg": [
+        570,
+        333
+      ],
+      "07_diagonal_left.jpg": [
+        423,
+        347
+      ],
+      "08_diagonal_right_soft.jpg": [
+        126,
+        76
+      ],
+      "09_diagonal_left_bw.jpg": [
+        401,
+        216
+      ],
+      "11_side_right.jpg": [
+        79,
+        100
+      ],
+      "12_front_trees.jpg": [
+        304,
+        168
+      ],
+      "13_front_heavy_trees.jpg": [
+        156,
+        89
+      ],
+      "14_front_pikiwiki.png": [
+        332,
+        169
+      ]
+    },
+    "P17": {
+      "06_front_flags.jpg": [
+        516,
+        211
+      ],
+      "05_front_center.jpg": [
+        367,
+        221
+      ],
+      "04_front_elevated.jpg": [
+        383,
+        170
+      ],
+      "03_front_postcard.jpg": [
+        1661,
+        836
+      ],
+      "02_front_wide.jpg": [
+        270,
+        102
+      ],
+      "01_front_clean.jpg": [
+        597,
+        334
+      ],
+      "07_diagonal_left.jpg": [
+        428,
+        350
+      ],
+      "08_diagonal_right_soft.jpg": [
+        132,
+        76
+      ],
+      "09_diagonal_left_bw.jpg": [
+        414,
+        214
+      ],
+      "10_diagonal_left.jpg": [
+        875,
+        330
+      ],
+      "13_front_heavy_trees.jpg": [
+        167,
+        89
+      ],
+      "14_front_pikiwiki.png": [
+        347,
+        169
+      ]
+    },
+    "P18": {
+      "06_front_flags.jpg": [
+        632,
+        246
+      ],
+      "04_front_elevated.jpg": [
+        433,
+        189
+      ],
+      "03_front_postcard.jpg": [
+        2014,
+        954
+      ],
+      "02_front_wide.jpg": [
+        309,
+        114
+      ],
+      "01_front_clean.jpg": [
+        717,
+        372
+      ],
+      "08_diagonal_right_soft.jpg": [
+        164,
+        82
+      ],
+      "09_diagonal_left_bw.jpg": [
+        528,
+        231
+      ],
+      "11_side_right.jpg": [
+        119,
+        104
+      ],
+      "12_front_trees.jpg": [
+        403,
+        193
+      ],
+      "14_front_pikiwiki.png": [
+        413,
+        188
+      ]
+    },
+    "P19": {
+      "06_front_flags.jpg": [
+        658,
+        245
+      ],
+      "04_front_elevated.jpg": [
+        447,
+        189
+      ],
+      "03_front_postcard.jpg": [
+        2089,
+        955
+      ],
+      "02_front_wide.jpg": [
+        318,
+        114
+      ],
+      "01_front_clean.jpg": [
+        742,
+        372
+      ],
+      "08_diagonal_right_soft.jpg": [
+        170,
+        82
+      ],
+      "11_side_right.jpg": [
+        123,
+        104
+      ],
+      "12_front_trees.jpg": [
+        421,
+        193
+      ],
+      "14_front_pikiwiki.png": [
+        427,
+        188
+      ]
+    },
+    "P20": {
+      "01_front_clean.jpg": [
+        525,
+        431
+      ],
+      "02_front_wide.jpg": [
+        247,
+        134
+      ],
+      "03_front_postcard.jpg": [
+        1443,
+        1125
+      ],
+      "04_front_elevated.jpg": [
+        351,
+        212
+      ],
+      "05_front_center.jpg": [
+        324,
+        278
+      ],
+      "06_front_flags.jpg": [
+        447,
+        303
+      ],
+      "07_diagonal_left.jpg": [
+        408,
+        408
+      ],
+      "09_diagonal_left_bw.jpg": [
+        374,
+        294
+      ],
+      "12_front_trees.jpg": [
+        276,
+        232
+      ],
+      "13_front_heavy_trees.jpg": [
+        136,
+        129
+      ],
+      "14_front_pikiwiki.png": [
+        306,
+        223
+      ]
+    },
+    "P21": {
+      "01_front_clean.jpg": [
+        559,
+        431
+      ],
+      "02_front_wide.jpg": [
+        258,
+        134
+      ],
+      "03_front_postcard.jpg": [
+        1550,
+        1124
+      ],
+      "04_front_elevated.jpg": [
+        366,
+        212
+      ],
+      "05_front_center.jpg": [
+        346,
+        278
+      ],
+      "06_front_flags.jpg": [
+        482,
+        302
+      ],
+      "07_diagonal_left.jpg": [
+        416,
+        409
+      ],
+      "09_diagonal_left_bw.jpg": [
+        393,
+        293
+      ],
+      "10_diagonal_left.jpg": [
+        844,
+        424
+      ],
+      "12_front_trees.jpg": [
+        297,
+        232
+      ],
+      "13_front_heavy_trees.jpg": [
+        152,
+        129
+      ],
+      "14_front_pikiwiki.png": [
+        326,
+        223
+      ]
+    },
+    "P22": {
+      "07_diagonal_left.jpg": [
+        217,
+        245
+      ],
+      "10_diagonal_left.jpg": [
+        523,
+        213
+      ]
+    },
+    "P23": {
+      "07_diagonal_left.jpg": [
+        250,
+        348
+      ],
+      "10_diagonal_left.jpg": [
+        553,
+        357
+      ]
+    },
+    "P24": {
+      "07_diagonal_left.jpg": [
+        269,
+        348
+      ],
+      "10_diagonal_left.jpg": [
+        564,
+        357
+      ]
+    },
+    "P25": {
+      "09_diagonal_left_bw.jpg": [
+        503,
+        33
+      ],
+      "08_diagonal_right_soft.jpg": [
+        158,
+        19
+      ],
+      "11_side_right.jpg": [
+        116,
+        18
+      ]
+    },
+    "P26": {
+      "09_diagonal_left_bw.jpg": [
+        630,
+        122
+      ]
+    },
+    "P27": {
+      "09_diagonal_left_bw.jpg": [
+        613,
+        175
+      ],
+      "11_side_right.jpg": [
+        153,
+        78
+      ]
+    },
+    "P28": {
+      "02_front_wide.jpg": [
+        80,
+        120
+      ],
+      "01_front_clean.jpg": [
+        13,
+        398
+      ],
+      "04_front_elevated.jpg": [
+        132,
+        188
+      ],
+      "07_diagonal_left.jpg": [
+        48,
+        311
+      ],
+      "08_diagonal_right_soft.jpg": [
+        67,
+        83
+      ],
+      "09_diagonal_left_bw.jpg": [
+        227,
+        283
+      ],
+      "10_diagonal_left.jpg": [
+        184,
+        354
+      ],
+      "14_front_pikiwiki.png": [
+        22,
+        202
+      ]
+    },
+    "P29": {
+      "02_front_wide.jpg": [
+        112,
+        120
+      ],
+      "01_front_clean.jpg": [
+        107,
+        397
+      ],
+      "03_front_postcard.jpg": [
+        192,
+        994
+      ],
+      "04_front_elevated.jpg": [
+        173,
+        189
+      ],
+      "05_front_center.jpg": [
+        70,
+        255
+      ],
+      "06_front_flags.jpg": [
+        54,
+        269
+      ],
+      "07_diagonal_left.jpg": [
+        113,
+        325
+      ],
+      "09_diagonal_left_bw.jpg": [
+        261,
+        280
+      ],
+      "10_diagonal_left.jpg": [
+        300,
+        355
+      ],
+      "14_front_pikiwiki.png": [
+        75,
+        201
+      ]
+    },
+    "P30": {
+      "02_front_wide.jpg": [
+        143,
+        121
+      ],
+      "01_front_clean.jpg": [
+        203,
+        396
+      ],
+      "04_front_elevated.jpg": [
+        215,
+        191
+      ],
+      "06_front_flags.jpg": [
+        148,
+        268
+      ],
+      "07_diagonal_left.jpg": [
+        169,
+        338
+      ],
+      "10_diagonal_left.jpg": [
+        409,
+        358
+      ],
+      "14_front_pikiwiki.png": [
+        129,
+        201
+      ]
+    },
+    "P31": {
+      "01_front_clean.jpg": [
+        847,
+        391
+      ],
+      "02_front_wide.jpg": [
+        349,
+        121
+      ],
+      "04_front_elevated.jpg": [
+        487,
+        199
+      ],
+      "05_front_center.jpg": [
+        521,
+        249
+      ],
+      "06_front_flags.jpg": [
+        768,
+        260
+      ],
+      "09_diagonal_left_bw.jpg": [
+        700,
+        233
+      ],
+      "11_side_right.jpg": [
+        186,
+        102
+      ],
+      "13_front_heavy_trees.jpg": [
+        263,
+        116
+      ],
+      "14_front_pikiwiki.png": [
+        484,
+        200
+      ]
+    },
+    "P32": {
+      "01_front_clean.jpg": [
+        889,
+        391
+      ],
+      "02_front_wide.jpg": [
+        362,
+        121
+      ],
+      "04_front_elevated.jpg": [
+        506,
+        200
+      ],
+      "05_front_center.jpg": [
+        546,
+        248
+      ],
+      "06_front_flags.jpg": [
+        808,
+        259
+      ],
+      "08_diagonal_right_soft.jpg": [
+        223,
+        83
+      ],
+      "11_side_right.jpg": [
+        199,
+        98
+      ],
+      "14_front_pikiwiki.png": [
+        506,
+        199
+      ]
+    },
+    "P33": {
+      "01_front_clean.jpg": [
+        949,
+        390
+      ],
+      "02_front_wide.jpg": [
+        382,
+        121
+      ],
+      "04_front_elevated.jpg": [
+        530,
+        200
+      ],
+      "06_front_flags.jpg": [
+        866,
+        258
+      ],
+      "08_diagonal_right_soft.jpg": [
+        243,
+        83
+      ],
+      "14_front_pikiwiki.png": [
+        540,
+        200
+      ]
+    }
+  }
+}
