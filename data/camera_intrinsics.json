@@ -1,0 +1,100 @@
+{
+  "01_front_clean.jpg": {
+    "width": 956,
+    "height": 683,
+    "cx": 478.0,
+    "cy": 341.5,
+    "f": null
+  },
+  "02_front_wide.jpg": {
+    "width": 512,
+    "height": 232,
+    "cx": 256.0,
+    "cy": 116.0,
+    "f": null
+  },
+  "03_front_postcard.jpg": {
+    "width": 3000,
+    "height": 1889,
+    "cx": 1500.0,
+    "cy": 944.5,
+    "f": null
+  },
+  "04_front_elevated.jpg": {
+    "width": 736,
+    "height": 444,
+    "cx": 368.0,
+    "cy": 222.0,
+    "f": null
+  },
+  "05_front_center.jpg": {
+    "width": 559,
+    "height": 744,
+    "cx": 279.5,
+    "cy": 372.0,
+    "f": null
+  },
+  "06_front_flags.jpg": {
+    "width": 953,
+    "height": 656,
+    "cx": 476.5,
+    "cy": 328.0,
+    "f": null
+  },
+  "07_diagonal_left.jpg": {
+    "width": 603,
+    "height": 717,
+    "cx": 301.5,
+    "cy": 358.5,
+    "f": null
+  },
+  "08_diagonal_right_soft.jpg": {
+    "width": 250,
+    "height": 173,
+    "cx": 125.0,
+    "cy": 86.5,
+    "f": null
+  },
+  "09_diagonal_left_bw.jpg": {
+    "width": 736,
+    "height": 423,
+    "cx": 368.0,
+    "cy": 211.5,
+    "f": null
+  },
+  "10_diagonal_left.jpg": {
+    "width": 1152,
+    "height": 703,
+    "cx": 576.0,
+    "cy": 351.5,
+    "f": null
+  },
+  "11_side_right.jpg": {
+    "width": 205,
+    "height": 246,
+    "cx": 102.5,
+    "cy": 123.0,
+    "f": null
+  },
+  "12_front_trees.jpg": {
+    "width": 554,
+    "height": 358,
+    "cx": 277.0,
+    "cy": 179.0,
+    "f": null
+  },
+  "13_front_heavy_trees.jpg": {
+    "width": 311,
+    "height": 162,
+    "cx": 155.5,
+    "cy": 81.0,
+    "f": null
+  },
+  "14_front_pikiwiki.png": {
+    "width": 640,
+    "height": 409,
+    "cx": 320.0,
+    "cy": 204.5,
+    "f": null
+  }
+}

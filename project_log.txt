@@ -316,13 +316,184 @@ ACTION 2 - No real-world distances available (scale is left arbitrary)
     the whole model can be rescaled to metres in one multiplication.
 
 
+================================================================================
+ENTRY 6  -  PYTHON ENVIRONMENT SET UP              [date: 2026-07-06]
+================================================================================
+
+Created an isolated "virtual environment" (a private, project-local Python with
+its own libraries, so nothing is installed system-wide and the project stays
+self-contained and reproducible).
+
+  Location . . . . . . .  .venv/   (in the project root; ignored by git)
+  Python version . . . .  3.14.6
+  Created with . . . . .  python -m venv .venv
+
+Libraries installed INTO THE VENV (from requirements.txt):
+      numpy 2.5.1        - all matrix arithmetic and SVD for the solver
+      matplotlib 3.11.0  - the existing point-marking GUI + figures
+      Pillow 12.3.0      - reading the image files
+  (plus their small automatic dependencies: contourpy, cycler, fonttools,
+   kiwisolver, python-dateutil, pyparsing, packaging, six)
+
+No extra library was needed beyond what was already listed: numpy alone provides
+the matrix operations and the SVD ("Singular Value Decomposition", a standard
+way to break a matrix into simpler parts - explained in full when we first use
+it at Step 4) that the hand-rolled photogrammetry needs. So requirements.txt is
+unchanged. We deliberately do NOT use a ready-made computer-vision library.
+
+Verified: importing numpy/matplotlib/Pillow inside the venv works and a test SVD
+runs; the global Python still has none of these, confirming the venv is isolated.
+
+HOW TO USE THE VENV (for the report / to reproduce)
+    Windows PowerShell:   .\.venv\Scripts\Activate.ps1
+    Then run, e.g.:       python main.py
+    Or without activating: .venv\Scripts\python.exe main.py
+    To recreate from scratch:
+        python -m venv .venv
+        .venv\Scripts\python.exe -m pip install -r requirements.txt
+
+
+================================================================================
+ENTRY 7  -  STEP 3: THE CAMERA SETTINGS MATRIX K   [date: 2026-07-06]
+================================================================================
+
+GOAL OF THIS STEP
+-----------------
+Set up the "camera model" - a small table of numbers, called K, that describes
+each camera's INTERNAL settings. We build one K per photo (14 in total). This
+step SOLVES NOTHING yet; it only labels which camera settings we already know
+and which single setting stays unknown. Every later step plugs K in.
+
+FIRST, THREE PLAIN-WORDS IDEAS WE NEED
+--------------------------------------
+1) Pixel coordinates (x, y).
+   x = how far RIGHT from the left edge, y = how far DOWN from the top edge,
+   both counted in pixels. Top-left of the image is (0, 0).
+
+2) Focal length, written f.
+   A single number that captures "how zoomed-in" the lens is. A long lens
+   (telephoto) has a big f; a wide lens has a small f. IMPORTANT: here f is
+   measured in PIXELS, not millimetres, because we are working directly with
+   pixel positions. Old photos never recorded it, so f is our unknown.
+
+3) The principal point (cx, cy).
+   The pixel where the lens axis pierces the image - essentially the CENTRE of
+   the picture. Standard, safe assumption for old photos: it is the middle of
+   the image, so  cx = width / 2  and  cy = height / 2.
+
+WHAT K LOOKS LIKE
+-----------------
+K is a 3-row by 3-column table (a "3x3 matrix"). For our assumptions it is:
+
+            column 1   column 2   column 3
+          +--------------------------------+
+   row 1  |    f          0         cx     |
+   row 2  |    0          f         cy     |
+   row 3  |    0          0          1     |
+          +--------------------------------+
+
+Reading every entry, one at a time:
+   (row1,col1) = f   : horizontal zoom, in pixels.
+   (row2,col2) = f   : vertical zoom. We put the SAME f in both because we
+                       assume "square pixels" (a pixel is as wide as it is
+                       tall), so the zoom is identical in x and y.
+   (row1,col2) = 0   : "skew". Would be non-zero only if the pixel grid were
+                       slanted (parallelogram-shaped pixels). Real cameras have
+                       square grids, so this is 0.
+   (row1,col3) = cx  : horizontal position of the image centre.
+   (row2,col3) = cy  : vertical position of the image centre.
+   (row3,col1) = 0
+   (row3,col2) = 0
+   (row3,col3) = 1   : a fixed bookkeeping 1 (see the note on the "extra 1"
+                       below). It is always 1 and never changes.
+
+WHAT K DOES (why this table is shaped like this)
+------------------------------------------------
+K's job is to convert a direction the camera is looking along into the pixel
+that direction lands on. If a 3D point sits at camera-relative position
+(Xc, Yc, Zc) - where Zc is "depth", how far in front of the camera it is - then
+the pixel it projects to is:
+
+        x  =  f * (Xc / Zc)  +  cx
+        y  =  f * (Yc / Zc)  +  cy
+
+In words: take the sideways/up-down angle to the point (that is the divide-by-
+depth part, Xc/Zc and Yc/Zc), multiply by the zoom f to turn the angle into a
+pixel offset, then shift by the centre (cx, cy) because pixel (0,0) is the
+top-left corner, not the middle. The K table above is just those two lines
+written in one compact block so we can reuse it with matrix multiplication.
+
+A NOTE ON THE "EXTRA 1" (homogeneous coordinates)
+-------------------------------------------------
+You will see pixels written as three numbers (x, y, 1) instead of two, and 3D
+points as four numbers (X, Y, Z, 1). That trailing 1 is a standard trick called
+"homogeneous coordinates". It lets a single matrix multiplication do both the
+multiply-by-f AND the add-the-centre in one clean step (adding a constant is
+otherwise not something plain matrix multiply can do). Treat the 1 as harmless
+padding for now; it is why K's bottom-right entry is 1. We will use it live at
+Step 4.
+
+OUR ASSUMPTIONS, LISTED (per the guide, Step 3)
+-----------------------------------------------
+  [known]    principal point = image centre  -> cx = width/2, cy = height/2
+  [known]    square pixels                    -> one shared f, both diagonal
+  [known]    no skew                          -> the off-diagonal 0
+  [UNKNOWN]  focal length f                   -> different and unknown per photo,
+                                                 estimated later (Steps 4 & 7)
+
+THE 14 K MATRICES - REAL NUMBERS
+--------------------------------
+Image sizes were read from the actual files (Pillow). Because the photos are
+different sizes (scans/crops from different sources), each camera gets its own
+centre. Only f is left blank.
+
+  photo                        width  height       cx       cy      f
+  ---------------------------- -----  ------  -------  -------  --------
+  01_front_clean.jpg             956     683    478.0    341.5   unknown
+  02_front_wide.jpg              512     232    256.0    116.0   unknown
+  03_front_postcard.jpg         3000    1889   1500.0    944.5   unknown
+  04_front_elevated.jpg          736     444    368.0    222.0   unknown
+  05_front_center.jpg            559     744    279.5    372.0   unknown
+  06_front_flags.jpg             953     656    476.5    328.0   unknown
+  07_diagonal_left.jpg           603     717    301.5    358.5   unknown
+  08_diagonal_right_soft.jpg     250     173    125.0     86.5   unknown
+  09_diagonal_left_bw.jpg        736     423    368.0    211.5   unknown
+  10_diagonal_left.jpg          1152     703    576.0    351.5   unknown
+  11_side_right.jpg              205     246    102.5    123.0   unknown
+  12_front_trees.jpg             554     358    277.0    179.0   unknown
+  13_front_heavy_trees.jpg       311     162    155.5     81.0   unknown
+  14_front_pikiwiki.png          640     409    320.0    204.5   unknown
+
+Worked example - camera 01_front_clean.jpg (956 x 683):
+      cx = 956 / 2 = 478.0 ,   cy = 683 / 2 = 341.5
+                    [ f     0    478.0 ]
+      K(01)   =     [ 0     f    341.5 ]
+                    [ 0     0      1.0 ]
+   The only thing missing is the one number f. Everything else is now fixed.
+
+WHAT THIS STEP PRODUCED
+-----------------------
+  - data/camera_intrinsics.json : the known part of every camera's K (width,
+    height, cx, cy) with "f": null as a placeholder for the unknown focal
+    length. Later solver code reads this file; the logbook here is the
+    human-readable explanation of the same thing.
+
+  - New unknowns introduced by this step: ONE focal length f per photo = 14
+    unknown numbers (f01 ... f14). These are pinned down at Step 4 (seed pair
+    gives the first estimate) and refined at Step 7 (bundle adjustment).
+
+WHY WE DON'T JUST GUESS f
+-------------------------
+We could guess (a common rough first guess is f approximately equal to the
+image width in pixels), but a wrong zoom bends the whole reconstruction. The
+method's strength is that it works f out FROM THE MARKED POINTS, so we keep it
+honestly unknown here and let the geometry determine it.
+
+
 ################################################################################
 #  NEXT STEPS  (BACKLOG - not done yet; the top item is what we do next)       #
 ################################################################################
 
-  [ ] Set up a Python virtual environment with numpy (+ existing tool deps).
-  [ ] STEP 3 in code: define each camera's internal-settings matrix K
-      (image centre + square pixels; zoom left as an unknown).
   [ ] STEP 4: seed pair - solve the relative position/orientation of
       02_front_wide + 04_front_elevated from their 25 shared points.
   [ ] STEP 5: triangulate the first cloud of 3D points.
