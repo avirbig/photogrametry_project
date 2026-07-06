@@ -1,0 +1,336 @@
+################################################################################
+#                                                                              #
+#              PHOTOGRAMMETRY PROJECT  -  PROJECT LOGBOOK                       #
+#     Recovering 3D structure from historical photographs of a building        #
+#                                                                              #
+################################################################################
+
+Course  : Morphological Methods in Archaeology
+Author  : (fill in your name)
+Contact : arch3dlabuh@gmail.com
+Started : 2026-07-06
+
+Purpose of this file:
+    A chronological record of every step taken in this project, the state of
+    the project at each step, the formulas and matrices used, and the reasoning
+    behind them. It is written so it can serve directly as the basis for the
+    final course report. It is updated as work progresses; the newest entries
+    are added at the bottom.
+
+
+================================================================================
+HOW TO READ THIS LOGBOOK
+================================================================================
+
+- Entries appear in chronological order. New work is appended at the bottom.
+- Each log entry has a date and a title.
+- Separator meaning:
+      ####  ...  ####     document title block
+      ==================  a log entry / major section
+      ------------------  a sub-section inside an entry
+- Matrices are drawn as plain grids of numbers between square brackets, e.g.
+      [ 1  0  0 ]
+      [ 0  1  0 ]     <- this is the "identity matrix" (explained when first used)
+      [ 0  0  1 ]
+- Every technical term is explained in plain words the FIRST time it appears.
+  If a term confused you later, search this file for its first mention.
+- Pixel coordinates are written as (x, y): x = distance from the LEFT edge,
+  y = distance from the TOP edge, both measured in pixels.
+
+
+================================================================================
+CONTENTS
+================================================================================
+
+  Entry 0   Project goal and the big idea
+  Entry 1   The 9-step plan and where we stand
+  Entry 2   Code and files that already exist
+  Entry 3   Data quality assessment (the marked points)
+  Entry 4   Decisions made and tools chosen
+  ----
+  NEXT STEPS (backlog)  -  kept at the very bottom, moves down as we progress
+
+
+================================================================================
+ENTRY 0  -  PROJECT GOAL AND THE BIG IDEA          [date: 2026-07-06]
+================================================================================
+
+WHAT WE ARE TRYING TO DO
+------------------------
+We have 14 old photographs of the same building, taken from different
+positions. By hand we marked "matching points" - the same physical feature
+(a window corner, a roof edge) clicked in every photo where it is visible.
+
+From those 2D pixel marks ALONE, we want to recover four things:
+  1. Where each marked point sits in 3D space  -> its (X, Y, Z) coordinates.
+  2. Where each camera was  -> the 3D position each photo was taken from.
+  3. Which way each camera pointed  -> its 3D orientation.
+  4. How much to trust each result  -> an error value for every point/camera.
+
+At the end, everything is expressed relative to the marked points themselves:
+the points sit at the centre of the coordinate system and the cameras are
+placed around them. This whole family of techniques is called
+"photogrammetry" or "Structure from Motion" (SfM) = working out 3D structure
+from a set of ordinary photos.
+
+THE ONE IDEA BEHIND EVERYTHING
+------------------------------
+A camera takes a 3D point and flattens it onto a flat picture. If you knew
+exactly where the camera was, which way it pointed, and how zoomed-in it was,
+you could PREDICT the exact pixel where any 3D point would land.
+
+The reverse of that prediction is our entire task: starting from the pixels we
+clicked, work backwards to recover the 3D points and every camera's position,
+orientation, and zoom.
+
+The compact way this is written (we will unpack every symbol later) is:
+
+      x  ~  K [ R | t ] X
+
+  X = the 3D point            (what we want)
+  x = the pixel it lands on    (what we measured by clicking)
+  R = camera orientation       (which way it points)  (what we want)
+  t = tied to camera position  (where it sits)         (what we want)
+  K = the camera's internal settings (mainly the zoom / focal length)
+
+Don't worry about this line yet. Each piece gets its own entry with real
+numbers when we reach the step that uses it.
+
+
+================================================================================
+ENTRY 1  -  THE 9-STEP PLAN AND WHERE WE STAND     [date: 2026-07-06]
+================================================================================
+
+The project follows the 9 steps in the guide "From Old Photos to 3D".
+
+  STEP                                              STATUS
+  ------------------------------------------------  -----------------
+  1. Mark matching points by hand                   DONE
+  2. Build the who-saw-what table of pixels         DONE
+  3. Set camera intrinsics (centre + square pixels, DONE (assumption)
+     let the zoom/focal length be estimated)        pending in code
+  4. Seed pair: pick best 2 photos, solve their     NOT STARTED
+     relative position and orientation
+  5. Triangulate the first cloud of 3D points       NOT STARTED
+  6. Add remaining photos one at a time             NOT STARTED
+     (resection + triangulation)
+  7. Bundle adjustment: refine all cameras and      NOT STARTED
+     points together (least-squares best fit)
+  8. Read off the error values                      NOT STARTED
+  9. Re-express everything in the points' own       NOT STARTED
+     coordinate frame (centre + spread directions)
+
+We have completed Steps 1-2. The rest of this logbook records Steps 3-9 as we
+build them, by hand, in plain linear algebra.
+
+
+================================================================================
+ENTRY 2  -  CODE AND FILES THAT ALREADY EXIST      [date: 2026-07-06]
+================================================================================
+
+Project folder layout (relevant parts):
+
+  photogrametry_project/
+    building_pictures/         14 building photos (.jpg / .png)
+    data/
+      correspondences.json     the marked points (master data file)
+      correspondences.csv      the same data as a spreadsheet table
+    src/
+      mark_points.py           the interactive marking tool (matplotlib GUI)
+      point_data.py            the data model (load/save the points)
+    main.py                    launches the marking tool
+    export_results.py          writes the CSV + annotated image copies
+    project_log.txt            <-- THIS FILE (the logbook)
+    From_Old_Photos_to_3D_Guide.docx   the method guide we follow
+    requirements.txt           python packages needed
+
+WHAT EACH PIECE DOES
+--------------------
+- main.py            -> starts the point-marking program.
+- src/mark_points.py -> the GUI used to click points: zoom, pan, thumbnails,
+                        a live correspondence table, save to JSON. (Step 1 tool.)
+- src/point_data.py  -> stores the data as  point -> {image -> (x, y)}  and
+                        reads/writes the JSON file.
+- export_results.py  -> exports the CSV and saves copies of each photo with the
+                        marked points drawn on them.
+
+The data model (how the marks are stored):
+    point_id  ->  { image_name -> [x, y] }
+  e.g.  "P0" -> { "01_front_clean.jpg": [293, 235], "02_front_wide.jpg": [173, 69], ... }
+
+
+================================================================================
+ENTRY 3  -  DATA QUALITY ASSESSMENT                [date: 2026-07-06]
+================================================================================
+
+Before building the solver we checked whether the marked data is good enough
+to actually reconstruct 3D. Summary: the data is STRONG and clearly solvable.
+
+HEADLINE NUMBERS
+----------------
+  Distinct 3D points marked (P) . . . . . . 34   (labelled P0 ... P33)
+  Photos (N) . . . . . . . . . . . . . . . . 14
+  Total clicks / measurements (M) . . . . . 279  (one click = one point in one photo)
+
+IS THE PUZZLE SOLVABLE? (a counting check)
+------------------------------------------
+The guide gives a rule: the number of things we MEASURED must be at least the
+number of things we DON'T KNOW.
+
+  Each click gives 2 numbers (its x and y), so measurements = 2 * M = 2 * 279 = 558.
+
+  Unknowns we must solve for:
+     7 per camera  (6 for position+orientation, 1 for unknown zoom) -> 7 * 14
+     3 per 3D point (its X, Y, Z)                                    -> 3 * 34
+     minus 7        (the scene can be freely slid/turned/resized)
+     = 7*14 + 3*34 - 7 = 98 + 102 - 7 = 193
+
+  Check:  measurements 558  >=  unknowns 193.   PASS, with large margin.
+
+A margin this big is exactly what we want, because scanned historical photos
+are noisy and we need spare measurements to average that noise out.
+
+VIEWS PER POINT (how many photos each point appears in)
+-------------------------------------------------------
+Rule from the guide: every point should appear in at least 3 photos (2 is the
+bare minimum to get depth; the 3rd lets us cross-check for mistakes).
+
+  28 of 34 points appear in 3 or more photos.  GOOD.
+  6 points appear in fewer than 3 photos:
+        P9  -> 2 photos
+        P22 -> 2 photos
+        P23 -> 2 photos
+        P24 -> 2 photos
+        P27 -> 2 photos
+        P26 -> 1 photo   <-- CANNOT be triangulated (DELETED - see Entry 5)
+
+  ACTION NEEDED: P26 is seen in only one photo, so its 3D position is
+  impossible to compute. Either mark it in at least one more photo, or drop it.
+  The five 2-photo points will work but cannot be error-checked.
+
+POINTS PER PHOTO
+----------------
+  01_front_clean.jpg . . . . . . 24        08_diagonal_right_soft.jpg . 20
+  02_front_wide.jpg  . . . . . . 25        09_diagonal_left_bw.jpg . . 23
+  03_front_postcard.jpg  . . . . 18        10_diagonal_left.jpg  . . . 20
+  04_front_elevated.jpg  . . . . 28        11_side_right.jpg . . . . . 15
+  05_front_center.jpg  . . . . . 19        12_front_trees.jpg  . . . . 12
+  06_front_flags.jpg . . . . . . 18        13_front_heavy_trees.jpg  . 10
+  07_diagonal_left.jpg . . . . . 23        14_front_pikiwiki.png . . . 24
+
+  All photos have plenty of points. 12 and 13 (heavy trees) have the fewest,
+  as expected - trees hide the building.
+
+SEED-PAIR CANDIDATES (Step 4 needs two photos sharing ~8 points)
+----------------------------------------------------------------
+The seed pair is the two photos we start the whole reconstruction from. Because
+the zoom is unknown, this first pair needs about 8 shared points. Our best
+pairs share far more:
+
+  shared pts   photo A                    photo B
+     25        02_front_wide.jpg          04_front_elevated.jpg   <-- best
+     24        04_front_elevated.jpg      14_front_pikiwiki.png
+     24        01_front_clean.jpg         14_front_pikiwiki.png
+     24        01_front_clean.jpg         04_front_elevated.jpg
+     23        02_front_wide.jpg          14_front_pikiwiki.png
+     23        01_front_clean.jpg         02_front_wide.jpg
+
+  We have very strong seed-pair options (25 shared points vs the 8 required).
+
+ONE TECHNICAL WARNING FOR LATER
+-------------------------------
+  03_front_postcard.jpg is a much higher-resolution image: its pixel
+  coordinates go up to ~2000, while other photos stay around ~600. Camera
+  internal settings (zoom, image centre) depend on image size, so the solver
+  must read each image's real width/height and NOT assume all photos are the
+  same size.
+
+
+================================================================================
+ENTRY 4  -  DECISIONS MADE AND TOOLS CHOSEN        [date: 2026-07-06]
+================================================================================
+
+DECISION 1 - Method: hand-rolled linear algebra (not a black-box library)
+    Because this is a learning project for the course, we implement the maths
+    ourselves (the 8-point algorithm, triangulation, resection, bundle
+    adjustment) rather than calling a ready-made photogrammetry library. At
+    each step this logbook will show the formula, the actual matrices with our
+    real numbers, and a plain-words explanation of every operation.
+
+DECISION 2 - Logbook format: plain text (.txt)
+    Chosen for easy reading/editing in Notepad++ on Windows, with clear
+    ASCII section separators. Can be converted to a formatted report later.
+
+DECISION 3 - One logbook, with a backlog at the bottom
+    This single file is the chronological record (the "logbook"). A short
+    "NEXT STEPS" list at the very end acts as the to-do list (the "backlog").
+
+STILL TO DECIDE (open questions)
+    - Whether we have any known real-world distance between two points, which
+      would let us fix the true SCALE of the model (Step 9). Without it the
+      shape is correct but the overall size is arbitrary. -> user to check.
+    - Which linear-algebra helper library to allow. Even "by hand" we will
+      need basic matrix operations and SVD (a standard matrix tool, explained
+      when first used). numpy is already in requirements.txt and is the natural
+      choice for the arithmetic, while we still write all the photogrammetry
+      logic ourselves. -> proposed: numpy only, no vision library.
+
+ENVIRONMENT NOTE
+    The system Python (3.14) currently has no packages installed, so a virtual
+    environment with numpy (and matplotlib/Pillow for the existing tools) will
+    be set up before running any code.
+
+
+================================================================================
+ENTRY 5  -  DATA CLEANUP AND SCALE DECISION        [date: 2026-07-06]
+================================================================================
+
+TWO open items from Entry 4 are now resolved.
+
+ACTION 1 - Deleted point P26
+    P26 was marked in only ONE photo (09_diagonal_left_bw.jpg, at pixel
+    (630, 122)). A point needs at least TWO photos to recover its depth, so a
+    one-photo point carries no usable 3D information. Decision: delete it.
+    - Removed P26 from data/correspondences.json and data/correspondences.csv.
+    - The remaining 33 point IDs keep their original labels (P0..P25, P27..P33).
+      We deliberately did NOT renumber them, so every pixel already recorded
+      still refers to the exact same physical feature. There is simply no "P26"
+      anymore - a harmless gap in the numbering.
+
+    Updated totals after deletion:
+        Distinct 3D points (P) . . . 33   (was 34)
+        Total clicks (M) . . . . . . 278  (was 279)
+        Solvability re-check: 2M = 556  >=  unknowns 7*14 + 3*33 - 7 = 190. PASS.
+    All other findings in Entry 3 are unchanged.
+
+ACTION 2 - No real-world distances available (scale is left arbitrary)
+    The original building's true measurements are not available to us. In
+    Step 9 the "scale" of the model is normally fixed by ONE known real
+    distance between two points (e.g. a measured window height). Without it:
+        - The SHAPE of the reconstruction is still fully correct (all angles
+          and all length RATIOS are right).
+        - Only the overall SIZE is undetermined - the model could be scaled up
+          or down uniformly and still match every photo equally well.
+    Consequence for the report: 3D coordinates and camera positions will be
+    given in arbitrary units (not metres). If a real distance is found later,
+    the whole model can be rescaled to metres in one multiplication.
+
+
+################################################################################
+#  NEXT STEPS  (BACKLOG - not done yet; the top item is what we do next)       #
+################################################################################
+
+  [ ] Set up a Python virtual environment with numpy (+ existing tool deps).
+  [ ] STEP 3 in code: define each camera's internal-settings matrix K
+      (image centre + square pixels; zoom left as an unknown).
+  [ ] STEP 4: seed pair - solve the relative position/orientation of
+      02_front_wide + 04_front_elevated from their 25 shared points.
+  [ ] STEP 5: triangulate the first cloud of 3D points.
+  [ ] STEP 6: add the remaining 12 photos one at a time.
+  [ ] STEP 7: bundle adjustment (refine everything together).
+  [ ] STEP 8: compute and report the error values.
+  [ ] STEP 9: re-express the result in the points' own coordinate frame.
+
+################################################################################
+#  END OF LOGBOOK                                                              #
+################################################################################
