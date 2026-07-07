@@ -242,6 +242,24 @@ def refine_pose(R, t, X, x, K, iters=100):
     return R, t
 
 
+def translation_given_rotation(R, X, x, K):
+    """
+    Linear least-squares for a camera's translation t when its rotation R is
+    already known (e.g. R came from a two-view essential matrix). With R fixed,
+    the projection  x ~ K (R X + t)  is linear in t, giving two equations per
+    point. This stays well-conditioned even for near-planar points, because the
+    unstable part (rotation) is no longer being solved for.
+    """
+    f, cx, cy = K[0, 0], K[0, 2], K[1, 2]
+    a = (R @ X.T).T                                # R X, known per point
+    A, b = [], []
+    for (u, v), ai in zip(x, a):
+        A.append([f, 0, -(u - cx)]); b.append((u - cx) * ai[2] - f * ai[0])
+        A.append([0, f, -(v - cy)]); b.append((v - cy) * ai[2] - f * ai[1])
+    t, *_ = np.linalg.lstsq(np.array(A), np.array(b), rcond=None)
+    return t
+
+
 def resect_camera(X, x, K):
     """
     Solve for a camera's pose (R, t) from >= 6 correspondences between known

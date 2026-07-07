@@ -112,8 +112,9 @@ The project follows the 9 steps in the guide "From Old Photos to 3D".
   4. Seed pair: pick best 2 photos, solve their     DONE
      relative position and orientation
   5. Triangulate the first cloud of 3D points       DONE
-  6. Add remaining photos one at a time             DONE (9/14; 5 oblique
-     (resection + triangulation)                       views deferred)
+  6. Add remaining photos one at a time             DONE (12/14; 3 oblique
+     (resection + triangulation; +6b essential)        provisional, 2 deferred
+                                                        to Step 7)
   7. Bundle adjustment: refine all cameras and      NOT STARTED
      points together (least-squares best fit)
   8. Read off the error values                      NOT STARTED
@@ -934,12 +935,86 @@ WHAT THIS STEP PRODUCED
                             plus the list of unregistered photos.
   - data/points3d.json    : the cloud grown to cover the registered cameras.
 
+================================================================================
+STEP 6b  -  RESCUE THE OBLIQUE VIEWS (essential matrix, not resection)  [date: 2026-07-07]
+================================================================================
+
+WHY A SEPARATE STEP
+-------------------
+Step 6 dropped the 5 diagonal/side views because resection cannot get a
+camera's rotation out of a near-planar cloud. But the facade is NOT actually
+flat - its middle section protrudes and the side walls have depth - and it is
+exactly the oblique photos that SEE that depth. Dropping them throws away the
+very views that carry the building's shape. So we bring them back with a method
+that does not depend on the flat cloud.
+
+THE ROOT CAUSE OF THE FLAT CLOUD (a lesson about seed choice)
+-------------------------------------------------------------
+The cloud is flat because of how the SEED PAIR was picked in Step 4: "the two
+photos that share the most points". The two highest-overlap photos were both
+FRONTAL (01 and 04), so every point they share lies on the facade plane -> a
+planar seed -> a planar cloud. Picking a seed by overlap ALONE builds in the
+flatness. A better rule balances overlap with PARALLAX (depth between the two
+views). That same better rule is what we use below to choose neighbours.
+
+THE METHOD (2D-2D, needs parallax not a cloud)
+----------------------------------------------
+For each oblique view, pair it with an already-registered NEIGHBOUR and recover
+their relative pose from the two images' 2D matches via the ESSENTIAL MATRIX
+(Step 4's machinery) - which needs only parallax between the two photos:
+
+  1. Pick the neighbour with the MOST parallax. Parallax is measured by the
+     homography residual: try to explain the matches with a single flat warp
+     (a homography); the LEFTOVER error is the depth a plane cannot capture.
+     Big leftover = real depth = essential matrix will work.
+  2. Essential matrix -> relative rotation R_rel; compose into the world frame
+     R_obl = R_rel * R_neighbour.
+  3. With R_obl fixed, solve the translation t LINEARLY from the cloud points
+     the view sees (well-conditioned even on planar points), then LM-refine.
+  4. Accept on cheirality + reprojection; triangulate the view's OFF-plane
+     points to grow the cloud, which then helps the next view (a cascade).
+
+THE KEY FINDING - IT IS THE FOCAL LENGTHS
+-----------------------------------------
+For 04 <-> 07 the fundamental matrix fits the hand-marked points PERFECTLY
+(epipolar residual 0.00px) - the marks are excellent and the 2D geometry is
+solid. Yet the METRIC reconstruction (form E with the assumed focals, decompose,
+triangulate) reprojects at 20-32px. A perfect 2D fit but a poor metric fit is
+the signature of WRONG FOCAL LENGTHS. Both cameras' focals matter (each is only
+the 1.2*max(w,h) guess), which is why searching one camera's focal alone could
+not fix it. So the oblique views are GEOMETRICALLY placeable (correct rotation,
+all points in front) but not yet METRICALLY sharp - capped by the focal guess,
+which is precisely the unknown Step 7 (bundle adjustment) exists to solve.
+
+THE RESULT
+----------
+  registered 12 / 14 cameras (was 9 / 14).
+  Newly rescued (kept as PROVISIONAL - valid pose, focal-limited error):
+      08_diagonal_right_soft  16.0px   (plain resection, once cloud grew)
+      11_side_right           28.4px   (essential vs 01)
+      07_diagonal_left        37.0px   (essential vs 02)
+  cloud grew 26 -> 29 points as their off-plane structure came in.
+
+  Still deferred (2): 09 (49px) and 10 (64px) - also geometrically valid (all
+  points in front) but just past the provisional cap; their focal mismatch is
+  larger (10 leans on the provisional 08). They should come in on a re-run
+  AFTER Step 7 refines the focal lengths.
+
+WHAT THIS STEP PRODUCED
+-----------------------
+  - src/geometry.py       : added translation_given_rotation (linear t once R
+                            is known from the essential matrix).
+  - step6b_register_oblique.py : the essential-matrix rescue + cascade.
+  - data/cameras.json     : now 12 cameras; oblique ones carry provisional=true.
+  - data/points3d.json    : cloud grown to 29 (now includes off-plane points).
+
 ################################################################################
 #  NEXT STEPS  (BACKLOG - not done yet; the top item is what we do next)       #
 ################################################################################
 
-  [ ] STEP 7: bundle adjustment (refine everything together); may also rescue
-      the 5 oblique views (07-11) once focal lengths are refined.
+  [ ] STEP 7: bundle adjustment (refine focals + all cameras + points together).
+      Should sharpen the 3 provisional oblique views AND let 09, 10 register on
+      a re-run of Step 6b (they are focal-limited, not geometry-limited).
   [ ] STEP 8: compute and report the error values.
   [ ] STEP 9: re-express the result in the points' own coordinate frame.
 

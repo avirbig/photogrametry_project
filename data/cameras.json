@@ -1,12 +1,9 @@
 {
-  "n_registered": 9,
+  "n_registered": 12,
   "n_total_photos": 14,
   "unregistered": [
-    "07_diagonal_left.jpg",
-    "08_diagonal_right_soft.jpg",
     "09_diagonal_left_bw.jpg",
-    "10_diagonal_left.jpg",
-    "11_side_right.jpg"
+    "10_diagonal_left.jpg"
   ],
   "cameras": {
     "01_front_clean.jpg": {
@@ -34,7 +31,8 @@
       ],
       "f": 1147.2,
       "n_pts_used": null,
-      "reproj_mean_px": null
+      "reproj_mean_px": null,
+      "provisional": false
     },
     "04_front_elevated.jpg": {
       "R": [
@@ -61,7 +59,8 @@
       ],
       "f": 883.1999999999999,
       "n_pts_used": null,
-      "reproj_mean_px": null
+      "reproj_mean_px": null,
+      "provisional": false
     },
     "14_front_pikiwiki.png": {
       "R": [
@@ -87,8 +86,9 @@
         0.23839058627644436
       ],
       "f": 768.0,
-      "n_pts_used": 24,
-      "reproj_mean_px": 4.577310918613034
+      "n_pts_used": null,
+      "reproj_mean_px": null,
+      "provisional": false
     },
     "02_front_wide.jpg": {
       "R": [
@@ -114,8 +114,9 @@
         0.8140466516749836
       ],
       "f": 614.4,
-      "n_pts_used": 23,
-      "reproj_mean_px": 1.0195509131821356
+      "n_pts_used": null,
+      "reproj_mean_px": null,
+      "provisional": false
     },
     "05_front_center.jpg": {
       "R": [
@@ -141,8 +142,9 @@
         0.3820335838533715
       ],
       "f": 892.8,
-      "n_pts_used": 19,
-      "reproj_mean_px": 4.836351315156046
+      "n_pts_used": null,
+      "reproj_mean_px": null,
+      "provisional": false
     },
     "03_front_postcard.jpg": {
       "R": [
@@ -168,8 +170,9 @@
         0.0437377988929004
       ],
       "f": 3600.0,
-      "n_pts_used": 18,
-      "reproj_mean_px": 9.617823255553812
+      "n_pts_used": null,
+      "reproj_mean_px": null,
+      "provisional": false
     },
     "06_front_flags.jpg": {
       "R": [
@@ -195,8 +198,9 @@
         0.08685454502078405
       ],
       "f": 1143.6,
-      "n_pts_used": 18,
-      "reproj_mean_px": 3.9728554153250317
+      "n_pts_used": null,
+      "reproj_mean_px": null,
+      "provisional": false
     },
     "12_front_trees.jpg": {
       "R": [
@@ -222,8 +226,9 @@
         -0.1325837318481617
       ],
       "f": 664.8,
-      "n_pts_used": 12,
-      "reproj_mean_px": 4.526642446282184
+      "n_pts_used": null,
+      "reproj_mean_px": null,
+      "provisional": false
     },
     "13_front_heavy_trees.jpg": {
       "R": [
@@ -249,8 +254,93 @@
         -0.3240657062297153
       ],
       "f": 373.2,
-      "n_pts_used": 10,
-      "reproj_mean_px": 2.3197630911846923
+      "n_pts_used": null,
+      "reproj_mean_px": null,
+      "provisional": false
+    },
+    "07_diagonal_left.jpg": {
+      "R": [
+        [
+          0.5434611878142221,
+          -0.2223921673372319,
+          0.8094391028648183
+        ],
+        [
+          0.2221755790987199,
+          0.9679874270855429,
+          0.1167833595015091
+        ],
+        [
+          -0.8094985789930104,
+          0.11637037815251354,
+          0.5754737054783108
+        ]
+      ],
+      "t": [
+        -1.050795877313597,
+        -0.19164807912585288,
+        0.675983095469821
+      ],
+      "f": 860.4,
+      "n_pts_used": 19,
+      "reproj_mean_px": 36.99723249662168,
+      "provisional": true
+    },
+    "08_diagonal_right_soft.jpg": {
+      "R": [
+        [
+          0.9950099098585591,
+          0.07364082896387761,
+          -0.06732241523278645
+        ],
+        [
+          -0.07479223135841226,
+          0.9970901646358465,
+          -0.014741971200966762
+        ],
+        [
+          0.06604090710834126,
+          0.019703601091509093,
+          0.9976223567524606
+        ]
+      ],
+      "t": [
+        0.09603923904997803,
+        -0.07489089688394929,
+        0.7386967168807869
+      ],
+      "f": 300.0,
+      "n_pts_used": 18,
+      "reproj_mean_px": 15.996766413937971,
+      "provisional": true
+    },
+    "11_side_right.jpg": {
+      "R": [
+        [
+          0.974883637125933,
+          0.2101447850997511,
+          -0.07376356390177631
+        ],
+        [
+          -0.21400132174045855,
+          0.9756084210409064,
+          -0.04890442809610022
+        ],
+        [
+          0.06168734357588089,
+          0.06346162690515672,
+          0.9960759476832588
+        ]
+      ],
+      "t": [
+        0.024632694502572165,
+        -0.16820152503901797,
+        0.6936741033411677
+      ],
+      "f": 295.2,
+      "n_pts_used": 13,
+      "reproj_mean_px": 28.354332248956513,
+      "provisional": true
     }
   }
 }
