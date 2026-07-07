@@ -117,7 +117,7 @@ The project follows the 9 steps in the guide "From Old Photos to 3D".
                                                         to Step 7)
   7. Bundle adjustment: refine all cameras and      DONE (8.2->4.7px;
      points together (least-squares best fit)          8 focals solved)
-  8. Read off the error values                      NOT STARTED
+  8. Read off the error values                      DONE (reproj + 3D wobble)
   9. Re-express everything in the points' own       NOT STARTED
      coordinate frame (centre + spread directions)
 
@@ -1077,14 +1077,63 @@ WHAT THIS STEP PRODUCED
                             constrained cameras; poses refined for all 12.
   - data/points3d.json    : the 29-point cloud, refined; per-point error updated.
 
+================================================================================
+STEP 8  -  READ OFF THE ERROR VALUES                        [date: 2026-07-07]
+================================================================================
+
+WHAT THIS STEP DOES
+-------------------
+Two error numbers per point, both coming straight out of the Step 7 fit:
+
+1. REPROJECTION ERROR (pixels). Push each 3D point back through every camera
+   that saw it and average the gap to the click. Small = the point is
+   consistent across all its photos; large = a careless click or a mismatch.
+
+2. 3D UNCERTAINTY (how far the point could wobble). This is read off the
+   STEEPNESS of the error bowl at the solution - the same slope/steepness idea
+   from the refinement. A point pinned by many well-spread cameras sits in a
+   STEEP, narrow bowl -> tiny wobble. A point seen by few cameras at a shallow
+   angle sits in a FLAT bowl -> large wobble. Formally:
+
+       point position covariance = sigma0^2 * (J^T J)^-1  (that point's 3x3 block)
+       sigma0^2 = (sum of squared pixel gaps) / (2M - U)
+
+   where 2M = number of measured pixel-numbers, U = number of unknowns, so
+   (2M - U) is the fit's "degrees of freedom". The square roots of the 3x3
+   block's eigenvalues are the wobble along the point's least-certain directions.
+   J^T J is the same "steepness" matrix the bundle adjustment already used.
+
+THE RESULT
+----------
+  typical pixel gap sigma0 = 6.21px   (degrees of freedom 2M-U = 303)
+  reprojection error:  mean 5.03px   median 4.65px   max 13.75px
+  3D wobble (as a fraction of the whole cloud's size):  median ~0%   max 2.8%
+
+  least reliable points (they agree - both measures point at the SAME points):
+      P28  13.75px (6 views)     P6  9.3px / 2.8% wobble (only 3 views)
+      P1    8.16px (10 views)    P7  6.1px / 1.5% wobble (only 4 views)
+  The worst wobble belongs to the FEW-VIEW points (P6 in 3 views, P7 in 4) -
+  exactly as expected: fewer/weaker views -> a flatter bowl -> a looser point.
+  Points seen by many frontal cameras are pinned so tightly the wobble rounds
+  to ~0% of the cloud size.
+
+  Scale note: the wobble is in the arbitrary scene units (and as a % of cloud
+  size); it becomes a real-world distance only if a known length is supplied in
+  Step 9. The % is scale-free, so it is already meaningful.
+
+WHAT THIS STEP PRODUCED
+-----------------------
+  - step8_report_errors.py : per-point reprojection error + 3D uncertainty from
+                            the covariance (sigma0^2 * (J^T J)^-1).
+  - data/errors.json       : per point - n_views, reprojection px, 3D wobble
+                            (in scene units and as a fraction of cloud size).
+
 ################################################################################
 #  NEXT STEPS  (BACKLOG - not done yet; the top item is what we do next)       #
 ################################################################################
 
-  [ ] STEP 8: compute and report the error values (per-point pixel error + a
-      3D uncertainty per point) - most of it falls straight out of Step 7.
   [ ] STEP 9: re-express the result in the points' own coordinate frame
-      (origin = point average; axes = point spread directions).
+      (origin = point average; axes = point spread directions). Final step.
 
 ################################################################################
 #  END OF LOGBOOK                                                              #
