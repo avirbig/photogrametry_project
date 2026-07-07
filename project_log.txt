@@ -118,11 +118,12 @@ The project follows the 9 steps in the guide "From Old Photos to 3D".
   7. Bundle adjustment: refine all cameras and      DONE (8.2->4.7px;
      points together (least-squares best fit)          8 focals solved)
   8. Read off the error values                      DONE (reproj + 3D wobble)
-  9. Re-express everything in the points' own       NOT STARTED
-     coordinate frame (centre + spread directions)
+  9. Re-express everything in the points' own       DONE (object-centred
+     coordinate frame (centre + spread directions)     reconstruction.json)
 
-We have completed Steps 1-2. The rest of this logbook records Steps 3-9 as we
-build them, by hand, in plain linear algebra.
+All 9 steps are now complete (see the entries below). The final, object-centred
+reconstruction lives in data/reconstruction.json. Everything was built by hand in
+plain linear algebra (numpy for matrix arithmetic and SVD only).
 
 
 ================================================================================
@@ -1057,6 +1058,13 @@ THE RESULT
       06_front_flags     1144 -> 1672        13_front_heavy   373 ->  666
       03_front_postcard  3600 -> 4248        (07,08,11 focals held; pose refined)
 
+  A CLEANUP AT THE END: two points (P6, P7) were seen only in a few nearly-
+  PARALLEL views (triangulation angle ~0 deg), so their DEPTH is unconstrained -
+  bundle adjustment slid them off toward infinity (distance ~45000 vs ~2 for the
+  facade). We drop any point whose rays are more parallel than 1.5 deg. That
+  leaves 27 solid points. (Low reprojection alone does NOT prove a good 3D point;
+  a point on a near-parallel pair of rays can sit anywhere along them.)
+
 THE REGISTER <-> REFINE LOOP (an honest limit)
 ----------------------------------------------
 After this refinement, re-running Step 6b DID rescue 09_diagonal_left_bw (the
@@ -1075,7 +1083,8 @@ WHAT THIS STEP PRODUCED
   - step7_bundle_adjust.py: the whole-scene Levenberg-Marquardt refinement.
   - data/cameras.json     : focals now SOLVED (not guessed) for the 8 well-
                             constrained cameras; poses refined for all 12.
-  - data/points3d.json    : the 29-point cloud, refined; per-point error updated.
+  - data/points3d.json    : the 27-point cloud (2 low-parallax points dropped),
+                            refined; per-point error updated.
 
 ================================================================================
 STEP 8  -  READ OFF THE ERROR VALUES                        [date: 2026-07-07]
@@ -1103,19 +1112,23 @@ Two error numbers per point, both coming straight out of the Step 7 fit:
    block's eigenvalues are the wobble along the point's least-certain directions.
    J^T J is the same "steepness" matrix the bundle adjustment already used.
 
-THE RESULT
+THE RESULT   (on the 27 points that survived the Step 7 parallax filter)
 ----------
-  typical pixel gap sigma0 = 6.21px   (degrees of freedom 2M-U = 303)
-  reprojection error:  mean 5.03px   median 4.65px   max 13.75px
-  3D wobble (as a fraction of the whole cloud's size):  median ~0%   max 2.8%
+  typical pixel gap sigma0 = 6.14px   (degrees of freedom 2M-U)
+  reprojection error:  mean 4.84px   median 4.48px   max 13.75px
+  3D wobble (as a fraction of the cloud's size):  median 16%   max 240%
+  well-constrained points (wobble < 20%):  18 / 27
+  uncertain points (wobble > 20%):          9 / 27  - all the 2-3 view points
 
-  least reliable points (they agree - both measures point at the SAME points):
-      P28  13.75px (6 views)     P6  9.3px / 2.8% wobble (only 3 views)
-      P1    8.16px (10 views)    P7  6.1px / 1.5% wobble (only 4 views)
-  The worst wobble belongs to the FEW-VIEW points (P6 in 3 views, P7 in 4) -
-  exactly as expected: fewer/weaker views -> a flatter bowl -> a looser point.
-  Points seen by many frontal cameras are pinned so tightly the wobble rounds
-  to ~0% of the cloud size.
+  least reliable points (both measures agree - the FEW-VIEW points):
+      P25  wobble 240% (only 2 views)   P9  wobble 43% (2 views)
+      P8   wobble  38% (3 views)        P28 reproj 13.75px (6 views)
+  Exactly as expected: fewer/weaker views -> a flatter error bowl -> a looser
+  point. Points seen by many well-spread cameras are pinned tightly (a few %
+  wobble); a 2-view point like P25 can slide along its rays (>100% wobble)
+  even though its reprojection looks fine (0.6px) - low reprojection does NOT
+  mean a certain point. (P6, P7 were already dropped in Step 7 for the same
+  reason, in their extreme form.)
 
   Scale note: the wobble is in the arbitrary scene units (and as a % of cloud
   size); it becomes a real-world distance only if a known length is supplied in
@@ -1128,13 +1141,60 @@ WHAT THIS STEP PRODUCED
   - data/errors.json       : per point - n_views, reprojection px, 3D wobble
                             (in scene units and as a fraction of cloud size).
 
-################################################################################
-#  NEXT STEPS  (BACKLOG - not done yet; the top item is what we do next)       #
-################################################################################
+================================================================================
+STEP 9  -  RE-EXPRESS EVERYTHING IN THE POINTS' OWN FRAME    [date: 2026-07-07]
+================================================================================
 
-  [ ] STEP 9: re-express the result in the points' own coordinate frame
-      (origin = point average; axes = point spread directions). Final step.
+WHAT THIS STEP DOES
+-------------------
+Until now the reconstruction FLOATED: it was anchored to camera 01, an arbitrary
+choice. This final step pins it to the OBJECT itself, so the numbers mean
+something:
 
+  1. ORIGIN = the average position of all the points (their centre).
+  2. AXES   = the directions the points spread out in the most - found from how
+              the points scatter around their centre (the principal directions
+              of that scatter, i.e. PCA). Strongest spread -> X, next -> Y,
+              least -> Z (so Z ends up as the facade's shallow depth).
+  3. SCALE  = would need one known real-world length; we have none, so the size
+              stays arbitrary. The SHAPE is correct regardless.
+
+The SAME shift+turn is applied to every camera too:
+      point:   P_new = Rw^T (P - c)        (c = centroid, Rw = spread axes)
+      camera:  R_new = R Rw,  t_new = R c + t
+Because it is only a rigid move (shift + rotation), every predicted pixel is
+UNCHANGED. We check exactly that: reprojection mean is 4.848px before AND after.
+
+THE RESULT
+----------
+  origin at the cloud centre; axes along the point spread.
+  cloud extent along new (X, Y, Z) = (0.494, 0.355, 0.175) - a real 3D box: a
+  wide-ish, shorter, SHALLOW slab, i.e. the building facade with its small depth
+  as the Z axis (the depth the oblique views made possible - see Step 6b).
+  The 12 camera centres now sit out in front of the facade (X ~ 1.4..3.0) with
+  the diagonal view 07 off to one side (Y = -0.44), a sensible camera layout.
+
+FINAL STANDING OF THE PROJECT
+-----------------------------
+  cameras registered : 12 / 14   (2 most-oblique views beyond this data)
+  3D points          : 27        (2 low-parallax points dropped)
+  reprojection error : 4.8px mean (well-constrained cameras ~3.5px)
+  focal lengths      : solved for the 8 well-constrained cameras
+  per-point errors   : reprojection + 3D wobble reported (Step 8)
+  frame              : object-centred (origin = points' centre; axes = spread)
+
+WHAT THIS STEP PRODUCED
+-----------------------
+  - step9_object_frame.py   : re-frames points and cameras onto the object.
+  - data/reconstruction.json: THE FINAL DELIVERABLE - every camera (R, t, focal,
+                              centre) and every point (X,Y,Z) in the object frame,
+                              plus per-point error, in one file.
+
+################################################################################
+#  PROJECT COMPLETE - all 9 steps done.  Optional future work:                 #
+#    - supply one known real distance to fix the metric SCALE (Step 9 note)     #
+#    - mark a few more OFF-plane points to rescue views 09, 10                  #
+#    - a viewer to display data/reconstruction.json (cameras + point cloud)     #
 ################################################################################
 #  END OF LOGBOOK                                                              #
 ################################################################################

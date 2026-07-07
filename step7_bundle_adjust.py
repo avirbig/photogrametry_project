@@ -41,6 +41,9 @@ CLOUD = os.path.join(ROOT, "data", "points3d.json")
 
 ANCHOR = "01_front_clean.jpg"   # its POSE is held fixed: fixes free drift/spin
 CLEAN_MAX = 10.0                # reproj below this = drop the "provisional" flag
+MIN_TRI_ANGLE = 1.5             # drop points whose rays are more parallel than
+                                # this (deg): their depth is unconstrained and
+                                # bundle adjustment slides them off to infinity
 FOCAL_PRIOR = 8.0               # gentle log-space pull keeping focals sane
                                 # (negligible when data is firm, decisive on the
                                 #  focal-depth degeneracy that else runs to inf)
@@ -167,17 +170,40 @@ def main() -> None:
             break
     print(f"reprojection mean AFTER : {rms(v):.3f}px   ({it + 1} iterations)\n")
 
-    # ---- unpack, report, save ----
+    # ---- unpack, then drop points with too little parallax ----
     cam2, P2 = unpack(v)
+    centers = {im: -cam2[im]["R"].T @ cam2[im]["t"] for im in cam_names}
+
+    def tri_angle(p, X):
+        rays = []
+        for im in cam_names:
+            if im in marks.get(p, {}):
+                d = X - centers[im]
+                rays.append(d / np.linalg.norm(d))
+        best = 0.0
+        for i in range(len(rays)):
+            for j in range(i + 1, len(rays)):
+                best = max(best, np.degrees(np.arccos(
+                    np.clip(rays[i] @ rays[j], -1, 1))))
+        return best
+
+    kept = [p for p in pt_names if tri_angle(p, P2[pt_idx[p]]) >= MIN_TRI_ANGLE]
+    dropped = [p for p in pt_names if p not in kept]
+    if dropped:
+        print(f"dropped {len(dropped)} low-parallax points (depth unconstrained): "
+              f"{dropped}\n")
+
+    # ---- report, save ----
     print(f"{'camera':26s} {'focal: was -> now':>22s}   {'reproj now':>10s}")
     cams_out = {"n_registered": len(cam_names),
                 "n_total_photos": cams_in["n_total_photos"],
                 "unregistered": cams_in["unregistered"], "cameras": {}}
     for im in cam_names:
-        pis, uvs = obs[im]
+        kp = [pt_idx[p] for p in kept if im in marks.get(p, {})]
+        kuv = np.array([marks[p][im] for p in kept if im in marks.get(p, {})], float)
         c = cam2[im]
         Pm = geo.build_K(c["f"], c["cx"], c["cy"]) @ np.c_[c["R"], c["t"]]
-        e = geo.reprojection_error(Pm, P2[pis], uvs).mean()
+        e = geo.reprojection_error(Pm, P2[kp], kuv).mean()
         was = cams_in["cameras"][im]["f"]
         prov = bool(e > CLEAN_MAX)
         flag = "  [still provisional]" if prov else ""
@@ -189,7 +215,7 @@ def main() -> None:
     json.dump(cams_out, open(CAMS, "w", encoding="utf-8"), indent=2)
 
     pts_out = {}
-    for p in pt_names:
+    for p in kept:
         Xp = P2[pt_idx[p]]
         errs = []
         for im in cam_names:
@@ -201,8 +227,8 @@ def main() -> None:
         pts_out[p] = {"XYZ": Xp.tolist(), "n_views": len(errs),
                       "reproj_mean_px": float(np.mean(errs))}
     cloud_out = {"note": "cloud after Step 7 bundle adjustment; focals refined; "
-                         "arbitrary scale (anchor cam 01)",
-                 "n_points": len(pt_names), "points": pts_out}
+                         "low-parallax points dropped; arbitrary scale (anchor cam 01)",
+                 "n_points": len(kept), "points": pts_out}
     json.dump(cloud_out, open(CLOUD, "w", encoding="utf-8"), indent=2)
     print(f"\nSaved refined -> {CAMS}\nSaved refined -> {CLOUD}")
 

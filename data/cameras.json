@@ -59,7 +59,7 @@
       ],
       "f": 910.8294197726906,
       "n_pts_used": null,
-      "reproj_mean_px": 5.474575816430805,
+      "reproj_mean_px": 5.603368077125229,
       "provisional": false
     },
     "14_front_pikiwiki.png": {
@@ -115,7 +115,7 @@
       ],
       "f": 686.8558126123359,
       "n_pts_used": null,
-      "reproj_mean_px": 3.725141093859702,
+      "reproj_mean_px": 3.771253510418022,
       "provisional": false
     },
     "05_front_center.jpg": {
@@ -311,7 +311,7 @@
       ],
       "f": 300.0,
       "n_pts_used": 18,
-      "reproj_mean_px": 11.032483724497242,
+      "reproj_mean_px": 11.633005191256778,
       "provisional": true
     },
     "11_side_right.jpg": {
@@ -339,7 +339,7 @@
       ],
       "f": 295.2,
       "n_pts_used": 13,
-      "reproj_mean_px": 13.38157867021078,
+      "reproj_mean_px": 13.038594189355932,
       "provisional": true
     }
   }

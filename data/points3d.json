@@ -1,6 +1,6 @@
 {
-  "note": "cloud after Step 7 bundle adjustment; focals refined; arbitrary scale (anchor cam 01)",
-  "n_points": 29,
+  "note": "cloud after Step 7 bundle adjustment; focals refined; low-parallax points dropped; arbitrary scale (anchor cam 01)",
+  "n_points": 27,
   "points": {
     "P0": {
       "XYZ": [
@@ -218,15 +218,6 @@
       "n_views": 6,
       "reproj_mean_px": 7.709165158006549
     },
-    "P7": {
-      "XYZ": [
-        -2145.479347712864,
-        -983.0836269958951,
-        16918.289474381498
-      ],
-      "n_views": 4,
-      "reproj_mean_px": 6.1297721778677445
-    },
     "P8": {
       "XYZ": [
         0.5740658049386068,
@@ -244,15 +235,6 @@
       ],
       "n_views": 2,
       "reproj_mean_px": 5.71509515617261
-    },
-    "P6": {
-      "XYZ": [
-        -8807.572414296714,
-        -2516.3759571259907,
-        44861.30564619332
-      ],
-      "n_views": 3,
-      "reproj_mean_px": 9.278153132599384
     },
     "P25": {
       "XYZ": [
