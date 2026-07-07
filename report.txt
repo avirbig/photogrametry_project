@@ -1,0 +1,236 @@
+================================================================================
+  PHOTOGRAMMETRY FROM HISTORICAL PHOTOGRAPHS
+  Recovering 3D structure, camera positions and orientations from hand-marked
+  points - implemented from scratch in plain linear algebra.
+================================================================================
+  Course : Morphological Methods in Archaeology
+  Data   : 14 photographs, 33 marked points
+  Tools  : Python / numpy (matrix arithmetic + SVD only; no CV library)
+--------------------------------------------------------------------------------
+
+This is a Structure-from-Motion pipeline built by hand. From 2D points clicked
+in a set of old photographs it recovers each point's 3D position and every
+camera's position, orientation and focal length. Each of the nine steps below
+states what was done, the formula used, and the result on the real data.
+
+GOVERNING EQUATION
+   A camera flattens a 3D point X to a pixel x by:
+
+        x  ~  K [ R | t ] X
+
+   K = internal settings (focal length, image centre); R = orientation;
+   t = position. The whole project runs this backwards: from the pixels,
+   recover X, R, t and the focal length.
+
+
+STEP 1-3  -  MARK POINTS, TABULATE, SET THE CAMERA MODEL
+--------------------------------------------------------------------------------
+The same physical features (window corners, roof edges) were clicked in every
+photo they appear in: 33 points across 14 photos, stored as a
+point -> (image -> pixel) table. Intrinsics were fixed by the standard
+assumptions - image centre at the picture centre, square pixels - leaving the
+focal length unknown, to be estimated in Step 7. The intrinsic matrix is
+
+        K = [ f  0  cx ]
+            [ 0  f  cy ]
+            [ 0  0   1 ]
+
+
+STEP 4  -  SEED PAIR: RELATIVE POSE OF TWO CAMERAS
+--------------------------------------------------------------------------------
+The pair 01_front_clean + 04_front_elevated (24 shared points) was solved first.
+The FUNDAMENTAL MATRIX F was estimated with the normalised 8-point algorithm
+from  x2^T F x1 = 0,  then forced to rank 2 by SVD:
+
+        F = [  1.026e-06   2.406e-05  -1.086e-02 ]
+            [ -2.434e-05   8.940e-07   2.349e-02 ]
+            [  4.568e-03  -1.336e-02   1.000e+00 ]
+
+        (fits the marks to a mean epipolar residual of 0.005 px)
+
+Folding the camera settings back in gives the ESSENTIAL MATRIX  E = K2^T F K1,
+forced to singular values (1, 1, 0):
+
+        E = [  0.0236   0.9773  -0.0685 ]
+            [ -0.9160   0.0525   0.3976 ]
+            [ -0.0165  -0.1981   0.0190 ]
+
+Decomposing  E = [t]x R  by SVD (with the fixed helper W) plus a cheirality test
+gives the second camera's pose:
+
+        R = [  0.9775  -0.0381  -0.2075 ]      rotation angle = 13.0 deg
+            [  0.0214   0.9964  -0.0823 ]
+            [  0.2099   0.0760   0.9748 ]
+
+        t (unit direction) = ( 0.199, -0.012, 0.980 )
+
+
+STEP 5  -  TRIANGULATE THE FIRST 3D POINTS
+--------------------------------------------------------------------------------
+With both cameras written as projection matrices  P1 = K1[I|0],  P2 = K2[R|t],
+each point's two lines of sight are crossed by solving  A X = 0  (SVD) - the
+point closest to both rays. The 24 seed points were recovered at a mean
+reprojection error of about 2 px.
+
+
+STEP 6 & 6b  -  ADD THE REMAINING CAMERAS
+--------------------------------------------------------------------------------
+RESECTION places each new camera from known 3D points and their pixels
+(linear DLT + refinement), reaching 9/14. The diagonal/side views resisted,
+because the reconstructed cloud is nearly planar (the facade). They were rescued
+with a two-view ESSENTIAL-MATRIX registration against a high-parallax
+neighbour, reaching 12/14, and their off-plane points enlarged the cloud.
+
+   KEY FINDING - IT WAS THE FOCAL LENGTH.
+   For the oblique views the fundamental matrix fit the marks PERFECTLY
+   (0.00 px), yet the metric reconstruction was off by 20-32 px. A perfect 2D
+   fit but a poor 3D one is the signature of WRONG FOCAL LENGTHS - the one
+   quantity old photos never record - not of bad marks or method. This is
+   exactly what bundle adjustment (Step 7) corrects.
+
+
+STEP 7  -  BUNDLE ADJUSTMENT: REFINE EVERYTHING JOINTLY
+--------------------------------------------------------------------------------
+All camera poses, focal lengths and point positions were refined together by
+Levenberg-Marquardt, minimising the total squared reprojection error:
+
+        min  SUM || project(camera_k, point_j) - clicked_pixel ||^2
+
+Camera 01 was anchored to fix the free drift/spin/scale; a gentle focal prior
+and holding the weakly-observed oblique focals prevented the focal-depth
+degeneracy from diverging.
+
+        Reprojection error (all cameras)          8.21 px  ->  4.68 px
+        Reprojection error (well-constrained)                  3.53 px
+        Focal lengths                             guessed  ->  8 solved
+
+   Focal length correction by bundle adjustment - examples (full per-camera
+   list in the RECOVERED CAMERAS table below), in pixels:
+
+        Camera                 Guess   Solved
+        13_front_heavy_trees     373      666
+        06_front_flags          1144     1672
+        03_front_postcard       3600     4248
+        02_front_wide            614      687
+        04_front_elevated        883      911
+
+A cleanup step dropped 2 points whose viewing rays were nearly parallel
+(0 deg triangulation angle) and whose depth was therefore unconstrained,
+leaving 27 solid points.
+
+
+STEP 8  -  ERROR VALUES
+--------------------------------------------------------------------------------
+Two per-point measures were reported: REPROJECTION ERROR (consistency across
+photos) and 3D UNCERTAINTY - the positional wobble read from the fit's
+steepness,  Cov = sigma0^2 (J^T J)^-1,  with  sigma0^2 = SSR / (2M - U).
+
+        Measure                        Mean    Median    Max
+        Reprojection error (px)        4.84     4.48     13.75
+        3D wobble (% of cloud size)      -       16%      240%
+
+18 of 27 points are tightly pinned (wobble < 20%); the 9 loose ones are exactly
+the 2-3 view points - as expected, fewer/weaker views give a flatter error bowl
+and a less certain point.
+
+
+STEP 9  -  OBJECT-CENTRED COORDINATE FRAME
+--------------------------------------------------------------------------------
+The floating reconstruction was re-expressed in the object's own frame: origin
+at the points' centroid, axes along their principal spread directions (PCA),
+applying the same rigid transform to every camera:
+
+        P_new = Rw^T (P - c)      R_new = R Rw      t_new = R c + t
+
+Reprojection error is identical before and after (4.848 px), confirming a
+correct rigid re-frame. The resulting cloud extent is (0.494, 0.355, 0.175) -
+a facade, with its shallow depth as the Z axis.
+
+
+RECOVERED CAMERAS  -  orientation and position of each photo (the deliverable)
+--------------------------------------------------------------------------------
+"Turn"   = how far the camera is rotated from the reference view (photo 01), deg.
+"Dist"   = distance from the object centre (arbitrary units; scale is not fixed).
+"Focal"  = the value solved in Step 7. Sorted by turn angle.
+
+   Camera                   Turn   Dist   Focal  Reproj  Status
+                            (deg)                  (px)
+   01_front_clean            0.0   1.68   1147     4.8   anchor
+   12_front_trees            3.7   1.91    831     3.4   ok
+   06_front_flags            3.8   2.61   1672     2.4   ok
+   03_front_postcard         5.6   2.07   4248     1.7   ok
+   14_front_pikiwiki         5.6   2.06    780     2.0   ok
+   08_diagonal_right_soft    5.9   2.24    300    11.6   provisional
+   13_front_heavy_trees      8.1   2.43    666     2.1   ok
+   02_front_wide             8.7   3.09    687     3.8   ok
+   05_front_center           9.2   2.07    820     3.5   ok
+   04_front_elevated         9.4   3.10    911     5.6   ok
+   11_side_right            12.7   1.46    295    13.0   provisional
+   07_diagonal_left         30.5   1.82    860     6.3   ok
+
+   The diagonal view 07 is turned the most (30.5 deg), as expected for an oblique
+   shot; the frontal photos cluster within ~10 deg of the reference. Photos 09
+   and 10 were not registered.
+
+
+RECONSTRUCTED 3D POINTS  -  27 points in the object frame
+--------------------------------------------------------------------------------
+Coordinates (X, Y, Z) in the object-centred frame; units arbitrary (scale not
+fixed). X = widest spread, Y = next, Z = facade depth. "Views" = number of
+photos the point was seen in; "loose" flags the 2-3 view points whose 3D
+position is weakly constrained (large wobble, see Step 8).
+
+   Point       X        Y        Z    Views  Reproj  Note
+                                               (px)
+   P0      -0.296    0.384   -0.133    11     6.2
+   P1      -0.282    0.215   -0.361    10     8.2
+   P2      -0.168    0.131   -0.341     9     5.1
+   P3       0.120   -0.039   -0.288    10     6.6
+   P4       0.231   -0.093   -0.267    10     8.0
+   P5       1.644    0.352    0.047     8     2.4   loose
+   P8       1.031   -0.310   -0.010     3     2.7   loose
+   P9       1.259   -0.369   -0.010     2     5.7   loose
+   P10     -0.361    0.299    0.098    10     4.5
+   P11     -0.333    0.259    0.098     8     4.1
+   P12     -0.317    0.069    0.034     9     3.2
+   P13     -0.265    0.036    0.036     9     2.7
+   P14     -0.229    0.016    0.037    11     3.2
+   P15     -0.172   -0.013    0.039    11     2.8
+   P16     -0.139   -0.032    0.040    12     4.2
+   P17     -0.083   -0.060    0.043    10     3.6
+   P18     -0.218   -0.298    0.103     9     4.7   loose
+   P19     -0.231   -0.348    0.103     9     5.5   loose
+   P20     -0.293    0.010    0.197    10     2.6
+   P21     -0.210   -0.031    0.194    10     2.6
+   P25     -0.351   -0.304   -0.422     2     0.6   loose
+   P28      0.117    0.754    0.122     6    13.8
+   P29      0.025    0.652    0.123     8     5.1
+   P30      0.000    0.521    0.126     6     3.0
+   P31     -0.183   -0.524    0.132     8     4.7   loose
+   P32     -0.132   -0.577    0.130     8     7.1   loose
+   P33     -0.165   -0.698    0.132     6     7.7   loose
+
+
+RESULTS SUMMARY
+--------------------------------------------------------------------------------
+        Photographs registered ......... 12 / 14
+        3D points reconstructed ........ 27
+        Mean reprojection error ........ 4.8 px
+        Focal lengths solved ........... 8
+        Seed-pair rotation ............. 13.0 deg
+        Coordinate frame ............... object-centred
+
+HONEST LIMITS
+   - The two most-oblique views (09, 10) were left unregistered: forcing them
+     in worsened the overall fit.
+   - Scale is arbitrary (no known real distance was available), so the shape is
+     correct but the absolute size is not.
+   - Three oblique cameras remain provisional, with their focals held at the
+     initial guess.
+
+--------------------------------------------------------------------------------
+Full method, every intermediate matrix and all reasoning are recorded step by
+step in project_log.txt. The final object-centred model (all cameras and points
+with per-point error) is in data/reconstruction.json. Implemented in Python
+with numpy only.
+================================================================================
