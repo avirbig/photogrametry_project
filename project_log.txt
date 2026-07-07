@@ -112,8 +112,8 @@ The project follows the 9 steps in the guide "From Old Photos to 3D".
   4. Seed pair: pick best 2 photos, solve their     DONE
      relative position and orientation
   5. Triangulate the first cloud of 3D points       DONE
-  6. Add remaining photos one at a time             NOT STARTED
-     (resection + triangulation)
+  6. Add remaining photos one at a time             DONE (9/14; 5 oblique
+     (resection + triangulation)                       views deferred)
   7. Bundle adjustment: refine all cameras and      NOT STARTED
      points together (least-squares best fit)
   8. Read off the error values                      NOT STARTED
@@ -851,12 +851,95 @@ WHAT THIS STEP PRODUCED
   - data/points3d.json   : the first 3D cloud - per point (X,Y,Z) and its
                            reprojection error, plus a summary block.
 
+================================================================================
+STEP 6  -  ADD THE REMAINING PHOTOS (RESECTION + TRIANGULATION)  [date: 2026-07-07]
+================================================================================
+
+WHAT THIS STEP DOES
+-------------------
+So far only the two seed cameras and 24 points exist. Step 6 grows the
+reconstruction one photo at a time. Each new photo already contains some points
+we have placed in 3D, so we can work BACKWARDS to find where that camera was -
+RESECTION - then triangulate its extra points to enlarge the cloud, and repeat.
+
+Step 5 vs Step 6 (they are mirror images):
+   Step 5  cameras known  -> solve for the 3D POINT      (triangulation)
+   Step 6  points known   -> solve for the CAMERA        (resection)
+Both use the same "clear the ~ division, then solve with SVD" trick.
+
+THE ALGORITHM (the loop, sub-step by sub-step)
+----------------------------------------------
+  state: PLACED = {seed cameras},  CLOUD = {seed points},  REST = other photos
+
+  WHILE some photo in REST sees >= 6 points already in CLOUD:
+    6.1 CHOOSE  the photo in REST that sees the MOST points in CLOUD
+                (most overlap = strongest constraint = least drift).
+    6.2 GATHER  its (pixel <-> known 3D point) pairs.
+    6.3 RESECT  solve that camera's R, t from those pairs:
+                  a. normalize pixels by K^-1 (remove the camera settings),
+                  b. two linear rows per point in the 12 entries of [R|t],
+                  c. SVD -> [R|t] up to scale+sign; fix sign (det>0 = proper
+                     rotation = points in front); snap to an exact rotation,
+                  d. POLISH with Levenberg-Marquardt to minimize reprojection.
+    6.4 CHECK   accept only if mean reprojection < 10px AND >= 90% of points
+                land in front; otherwise REJECT and retry after the cloud grows.
+    6.5 REGISTER move the photo from REST into PLACED.
+    6.6 GROW    triangulate the points it shares with an already-placed camera
+                (widest-baseline pair) and add them to CLOUD.
+  END WHILE
+  6.7 REPORT   any photo that never reached 6 good points is left unregistered.
+
+Why DLT then LM (sub-step 6.3c-d): the linear DLT gives a quick pose but only
+an approximate one (~15px here); a few downhill Levenberg-Marquardt steps then
+drop it to ~2px. LM only keeps steps that reduce the error, so a bad start
+cannot make it diverge (an earlier plain Gauss-Newton version blew one camera
+up to 380px - fixed by the damping). This is the same least-squares idea
+Step 7 will apply to ALL cameras and points at once.
+
+THE RESULT
+----------
+  registered 9 / 14 cameras.  Per-camera mean reprojection error:
+      02_front_wide       1.02px      13_front_heavy_trees  2.32px
+      06_front_flags      3.97px      12_front_trees        4.53px
+      05_front_center     4.84px      14_front_pikiwiki     4.58px
+      03_front_postcard   9.62px      (01, 04 = the seed pair)
+  cloud: 26 points, per-point reprojection mean 3.70px (max 8.14px).
+
+  NOT registered (5): 07, 08, 09, 10, 11 - all the DIAGONAL / SIDE views.
+
+WHY THE OBLIQUE VIEWS FAILED (an honest, expected result)
+---------------------------------------------------------
+The registered cloud is nearly FLAT: its spread in the three directions is
+(3.92, 1.23, 0.59), a flatness ratio of 0.15 - almost all points sit on the
+building's front face. Resectioning a camera from near-planar points is
+ill-conditioned (this is exactly the "all points on one flat surface" failure
+the guide warns about). Frontal photos are fine because they look straight at
+that plane; the diagonal/side photos (07-11) see it at a steep angle and their
+resection is unstable, giving 16-64px errors or points behind the camera - so
+the acceptance gate correctly refuses them rather than poisoning the cloud with
+a wrong camera.
+
+Paths to recover them later: (a) Step 7 bundle adjustment refines the focal
+lengths (currently only the 1.2*max(w,h) guess), which may stabilise them;
+(b) marking a few more points OFF the front plane (roof depth, side wall) would
+break the planarity; (c) seeding those cameras against a less planar subset.
+For now we proceed with the 9 well-constrained cameras.
+
+WHAT THIS STEP PRODUCED
+-----------------------
+  - src/geometry.py       : added resect_camera (DLT + refine) and refine_pose
+                            (Levenberg-Marquardt pose polish). Step 7 reuses them.
+  - step6_register_cameras.py : the incremental resection/triangulation loop.
+  - data/cameras.json     : every registered camera's R, t, focal + stats,
+                            plus the list of unregistered photos.
+  - data/points3d.json    : the cloud grown to cover the registered cameras.
+
 ################################################################################
 #  NEXT STEPS  (BACKLOG - not done yet; the top item is what we do next)       #
 ################################################################################
 
-  [ ] STEP 6: add the remaining 12 photos one at a time.
-  [ ] STEP 7: bundle adjustment (refine everything together).
+  [ ] STEP 7: bundle adjustment (refine everything together); may also rescue
+      the 5 oblique views (07-11) once focal lengths are refined.
   [ ] STEP 8: compute and report the error values.
   [ ] STEP 9: re-express the result in the points' own coordinate frame.
 

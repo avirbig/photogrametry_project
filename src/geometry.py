@@ -173,3 +173,124 @@ def reprojection_error(P, X, x) -> np.ndarray:
     xh = (P @ np.c_[X, np.ones(len(X))].T).T
     xp = xh[:, :2] / xh[:, 2:]
     return np.sqrt(((xp - x) ** 2).sum(axis=1))
+
+
+# ── Piece 6: resection (place a new camera from known 3D points) ─────────────
+
+def _skew(v):
+    return np.array([[0, -v[2], v[1]],
+                     [v[2], 0, -v[0]],
+                     [-v[1], v[0], 0.0]])
+
+
+def _rodrigues(w):
+    """Turn a rotation vector w (axis*angle) into a 3x3 rotation matrix."""
+    th = np.linalg.norm(w)
+    if th < 1e-12:
+        return np.eye(3)
+    k = _skew(w / th)
+    return np.eye(3) + np.sin(th) * k + (1 - np.cos(th)) * (k @ k)
+
+
+def refine_pose(R, t, X, x, K, iters=100):
+    """
+    Nudge (R, t) to minimize the reprojection error - the DLT resection gives a
+    good starting guess, this polishes it. Rotation updates ride on the manifold
+    via a small rotation vector (R <- expm[w] R) so R stays a valid rotation;
+    translation is updated directly. Uses Levenberg-Marquardt: a damping term
+    keeps steps sane and any step that does NOT reduce the error is rejected (so
+    a bad start cannot make it diverge). Same downhill-least-squares idea Step 7
+    later applies to all cameras at once.
+    """
+    def residuals(R, t):
+        xh = (K @ (R @ X.T + t[:, None])).T
+        return (xh[:, :2] / xh[:, 2:] - x).ravel()
+
+    r0 = residuals(R, t)
+    cost = r0 @ r0
+    lam = 1e-3
+    for _ in range(iters):
+        J = np.zeros((len(r0), 6))
+        eps = 1e-6
+        for i in range(3):                          # 3 rotation columns
+            dw = np.zeros(3); dw[i] = eps
+            J[:, i] = (residuals(_rodrigues(dw) @ R, t) - r0) / eps
+        for i in range(3):                          # 3 translation columns
+            dt = np.zeros(3); dt[i] = eps
+            J[:, 3 + i] = (residuals(R, t + dt) - r0) / eps
+        H = J.T @ J
+        g = J.T @ r0
+        stepped = False
+        for _try in range(12):                      # grow damping until a step helps
+            try:
+                delta = np.linalg.solve(H + lam * np.diag(np.diag(H)), -g)
+            except np.linalg.LinAlgError:
+                lam *= 10
+                continue
+            Rn = _rodrigues(delta[:3]) @ R
+            tn = t + delta[3:]
+            rn = residuals(Rn, tn)
+            cn = rn @ rn
+            if cn < cost:                           # accept only if it improves
+                R, t, r0, cost = Rn, tn, rn, cn
+                lam = max(lam * 0.5, 1e-9)
+                stepped = True
+                break
+            lam *= 10
+        if not stepped or np.linalg.norm(delta) < 1e-10:
+            break
+    return R, t
+
+
+def resect_camera(X, x, K):
+    """
+    Solve for a camera's pose (R, t) from >= 6 correspondences between known
+    3D points X (N,3) and their pixels x (N,2), given the camera settings K.
+    This is the mirror image of triangulation: there the cameras were known and
+    the point unknown; here the points are known and the camera is unknown.
+
+    Method (normalized DLT):
+      1. Turn pixels into normalized rays  xn = K^-1 [u, v, 1]  (removes K).
+      2. Normalize the 3D points (centre + isotropic scale) for numerical
+         stability, exactly as _normalize does in 2D but in 3D.
+      3. Each point gives two linear rows in the 12 entries of M = [R | t]
+         (same "clear the ~ division" trick as triangulate); solve M m = 0 with
+         SVD -> a 3x4 matrix known up to scale and sign, then undo step 2.
+      4. Fix the sign so the rotation block is a proper rotation (det > 0),
+         which is also the sign that puts points in front of the camera.
+      5. Snap the rotation block to an exact rotation (SVD -> U V^T) and read
+         the scale off its singular values to recover the true t.
+    Returns (R, t).
+    """
+    Kinv = np.linalg.inv(K)
+    xn = (Kinv @ np.c_[x, np.ones(len(x))].T).T
+    xn = xn[:, :2] / xn[:, 2:]                     # normalized image coords
+
+    # isotropic 3D normalization: centre at origin, mean distance sqrt(3)
+    c = X.mean(axis=0)
+    d = np.sqrt(((X - c) ** 2).sum(axis=1)).mean()
+    s = np.sqrt(3) / d
+    T = np.array([[s, 0, 0, -s * c[0]],
+                  [0, s, 0, -s * c[1]],
+                  [0, 0, s, -s * c[2]],
+                  [0, 0, 0, 1.0]])
+    Xn = (T @ np.c_[X, np.ones(len(X))].T).T       # normalized homogeneous pts
+
+    rows = []
+    for (un, vn), Xi in zip(xn, Xn):
+        z = np.zeros(4)
+        rows.append(np.r_[-Xi, z, un * Xi])        # un*(M3.X) - (M1.X) = 0
+        rows.append(np.r_[z, -Xi, vn * Xi])        # vn*(M3.X) - (M2.X) = 0
+    _, _, Vt = np.linalg.svd(np.array(rows))
+    M = Vt[-1].reshape(3, 4) @ T                   # undo the 3D normalization
+
+    if np.linalg.det(M[:, :3]) < 0:                # pick the physical sign
+        M = -M
+
+    U, D, Vt2 = np.linalg.svd(M[:, :3])            # nearest exact rotation
+    R = U @ Vt2
+    t = M[:, 3] / D.mean()                          # undo the leftover scale
+
+    # DLT is only an initial guess; polish it to minimize reprojection error
+    R, t = refine_pose(R, t, X, x, K)
+    return R, t
