@@ -109,9 +109,9 @@ The project follows the 9 steps in the guide "From Old Photos to 3D".
   2. Build the who-saw-what table of pixels         DONE
   3. Set camera intrinsics (centre + square pixels, DONE (assumption)
      let the zoom/focal length be estimated)        pending in code
-  4. Seed pair: pick best 2 photos, solve their     NOT STARTED
+  4. Seed pair: pick best 2 photos, solve their     DONE
      relative position and orientation
-  5. Triangulate the first cloud of 3D points       NOT STARTED
+  5. Triangulate the first cloud of 3D points       DONE
   6. Add remaining photos one at a time             NOT STARTED
      (resection + triangulation)
   7. Bundle adjustment: refine all cameras and      NOT STARTED
@@ -625,6 +625,17 @@ Stage 5 - Pull the rotation R and translation t out of E.
 
    giving:   R = U W V^T        t = the last column of U
 
+   Why these two formulas:
+   - t = last column of U, because [t]x always sends t to zero (t x t = 0),
+     so t is the one direction E collapses - and SVD parks that collapsed
+     direction in U's last column (the one whose singular value is 0).
+   - W is a FIXED 90-degree turn. E = [t]x R hides a rotation R next to the
+     cross-product part [t]x, and that cross-product part carries a built-in
+     90-degree twist (t x v always comes out at right angles to v). Slotting
+     W between U and V^T cancels that twist and leaves the clean rotation R.
+     W and its transpose W^T undo it the two possible ways -> the two
+     candidate rotations R_a and R_b.
+
    This produces FOUR candidate (R, t) answers (two rotations x two signs of t).
    Only one places the 3D points IN FRONT of both cameras; the other three put
    them behind, which is physically impossible. Testing this - the CHEIRALITY
@@ -632,6 +643,35 @@ Stage 5 - Pull the rotation R and translation t out of E.
 
 That is the whole method. The next part carries out these five stages on the
 real seed pair.
+
+HOW SVD ACTUALLY WORKS  (the workhorse behind stages 2-5)
+--------------------------------------------------------
+Every matrix M does the same thing to space: feed it every
+arrow of length 1 (together they trace out a ball) and the output is always
+an ELLIPSOID - a stretched, tilted rugby-ball shape. SVD, M = U S V^T, is
+just the bookkeeping of that ellipsoid:
+   S (the singular values) = the LENGTHS of the ellipsoid's axes (how much
+       each direction gets stretched),
+   U (columns)             = the DIRECTIONS those axes point in the output,
+   V (columns)             = the special INPUT arrows that land exactly on
+                             those axes.
+So V's arrow number i maps to U's arrow number i, stretched by S_i:
+   M v_i = S_i u_i.
+That pairing is why we can overwrite the stretch amounts (e.g. force them to
+1,1,0 in stage 4) WITHOUT disturbing U or V - we reshape the ellipsoid's
+axis lengths while keeping every direction fixed.
+
+How it is COMPUTED (what np.linalg.svd does, by hand):
+   1. Form S = M^T M  (a symmetric 3x3).
+   2. Singular values = sqrt(eigenvalues of S). The eigenvalues are the
+      roots of the cubic  det(S - lambda*I) = 0,  whose coefficients are
+      read straight off S:
+         lambda^3 - (trace)*lambda^2 + (sum of 2x2 minors)*lambda - det = 0.
+   3. V's columns = the eigenvectors of S (each is the null direction of
+      S - lambda*I for its eigenvalue).
+   4. U's columns = u_i = M v_i / sigma_i  (the zero-stretch direction has
+      no sigma to divide by, so it is filled in as u1 x u2 to complete the
+      set). Signs of paired columns can flip together harmlessly.
 
 THE FIVE STAGES, WITH THE REAL NUMBERS
 --------------------------------------
@@ -644,9 +684,35 @@ Stage 1-3 : Fundamental matrix F (the 8-point algorithm + rank-2 cleanup).
    pixel: your 24 marked correspondences are extremely consistent. Good work.
 
 Stage 4 : Essential matrix E = K2^T F K1 (folds the camera settings back in).
+
+   The formula with the three real matrices side by side (K2^T is K2
+   transposed, so cam-2's offsets 368.0, 222.0 move to the bottom row):
+
+              [ 883.2    0     0  ]   [  0.0000   0.0000  -0.0109 ]   [ 1147.2    0     478.0 ]
+      E =     [   0    883.2   0  ] . [ -0.0000   0.0000   0.0235 ] . [   0    1147.2   341.5 ]
+              [ 368.0  222.0   1  ]   [  0.0046  -0.0134   1.0000 ]   [   0      0        1.0  ]
+                (K2 transposed)           (fundamental matrix)          (intrinsics of cam 1)
+
+   (F's top-left entries print as 0.0000 but are really ~1e-6..1e-5, not
+   zero - F is scaled so F33 = 1.) Multiplying out and normalising the
+   singular values to (1, 1, 0) gives:
+
                     [  0.0236   0.9773  -0.0685 ]
       E =           [ -0.9160   0.0525   0.3976 ]
                     [ -0.0165  -0.1981   0.0190 ]
+
+   Why the normalising step is needed. A genuine essential matrix must have
+   two equal non-zero singular values and one zero, i.e. (sigma, sigma, 0).
+   But the raw product K2^T F K1 comes out with singular values
+
+         ( 27.04 ,  24.85 ,  0.00 )
+
+   - the first two are NOT equal, because F and the assumed focal lengths
+   carry small errors. So the raw product is only an APPROXIMATE essential
+   matrix. The SVD step replaces its stretch amounts with (1, 1, 0), snapping
+   it onto the nearest exact essential matrix (E has no fixed scale, so 1,1
+   rather than 27,25). The zero third value is already correct - it is what
+   lets E be split into a rotation and a translation in Stage 5.
 
 Stage 5 : Decompose E (SVD + the fixed helper W) into the rotation and the
    translation direction, then use the cheirality check (points must be IN
@@ -662,43 +728,32 @@ RESULT OF STEP 4
 
       t (unit) =    ( 0.1993,  -0.0125,   0.9799 )
 
+   Consistency check: rebuilding [t]x R from the winning R and t reproduces
+   E exactly (up to the overall sign that E's arbitrary scale allows),
+   confirming that E really was [t]x R all along.
+
    Reprojection check: pushing the reconstructed 3D points back through the
    cameras and comparing to the clicks gave an average gap of 2.7 px (image 1)
    and 2.0 px (image 2) - a good fit for scanned historical photos.
 
 WHAT R AND t REPRESENT  (the plain-words meaning)
 -------------------------------------------------
-Set up a coordinate frame on camera 1: it sits at the origin (0,0,0) and looks
-straight down the +Z axis into the scene. In this frame, +X points to the
-right, +Y points down (matching image rows), +Z points forward into the scene.
+frame on camera 1: it sits at the origin (0,0,0) and looks straight down the +Z axis into the scene.
 
 R - THE ROTATION OF CAMERA 2.
    R is a 3x3 rotation matrix: it says how camera 2 is TURNED compared with
-   camera 1. Every rotation matrix can be summarised by a single angle - how
-   many degrees it turns. Here that angle is 13.0 degrees. Meaning: camera 2
-   (04_front_elevated) is aimed about 13 degrees away from camera 1's
-   direction - a modest change of viewpoint, which fits two fairly frontal
-   photos of the same facade. If R were the identity matrix, the two cameras
-   would point in exactly the same direction (0 degrees).
+   camera 1. Here that angle is 13.0 degrees. 
 
 t - THE TRANSLATION (WHERE CAMERA 2 SITS).
-   t is a direction arrow with three numbers. Strictly, t is the "translation
+   t is a direction arrow. Strictly, t is the "translation
    part" of camera 2's pose; the actual PHYSICAL POSITION of camera 2 (its
    centre) is computed from R and t as:
 
          C2  =  -R^T t   =   ( -0.40,  -0.05,  -0.91 )
 
-   Read in our axes (X right, Y down, Z forward): camera 2 sits mostly BACK
-   along the viewing axis (-Z) and a bit to the LEFT (-X), barely up or down.
-   In plain words: relative to camera 1, the second shot was taken from a
-   position offset backward-and-left, then re-aimed by 13 degrees.
+   the second shot was taken from a position offset backward-and-left, then re-aimed by 13 degrees.
 
-   IMPORTANT - only the DIRECTION is known, not the distance. t is written as a
-   unit arrow (length 1) because two photos cannot reveal the true separation
-   between the cameras (this is the same "scale is arbitrary" fact from Entry
-   5). We know WHICH WAY camera 2 is displaced, not by how many metres. The
-   whole model's size is fixed only later, and only if a real distance is
-   known (which we do not have).
+   IMPORTANT - only the DIRECTION is known, not the distance.
 
    Camera 1 itself is, by definition, R = identity and t = (0,0,0): it is the
    anchor everything else is measured against.
@@ -708,21 +763,98 @@ WHAT THIS STEP PRODUCED
   - src/geometry.py     : reusable hand-rolled routines (fundamental matrix,
                           essential matrix, pose decomposition, triangulation,
                           cheirality, reprojection error). Steps 5-7 reuse them.
-  - run_step4.py        : the script that runs this step and prints the matrices.
+  - step4_seed_pose.py  : the script that runs this step and prints the matrices.
   - data/seed_pose.json : the saved result - the seed pair, the assumed focals,
                           and R, t for both seed cameras.
 
-  New knowledge gained: the relative pose (R, t) of the two seed cameras, plus
-  a provisional focal length for each. Still unknown: the absolute scale, and
-  the poses of the other 12 photos (added next).
+================================================================================
+STEP 5  -  TRIANGULATE THE FIRST 3D POINT CLOUD    [date: 2026-07-07]
+================================================================================
 
+WHAT THIS STEP DOES
+-------------------
+Step 4 gave us the two seed cameras (P1 and P2). Now each point marked in BOTH
+seed photos gives a LINE OF SIGHT out of each camera through the pixel we
+clicked. The 3D point is where those two lines meet - TRIANGULATION, the same
+principle as fixing a location from two compass bearings. Because clicks are
+slightly off, the two lines never cross perfectly, so we take the point that
+comes CLOSEST to both lines.
+
+THE PROJECTION MATRIX P  (the tool this step reverses)
+------------------------------------------------------
+A camera is summed up by one 3x4 table P = K [ R | t ] (the guide's
+x ~ K[R|t]X, with K[R|t] bundled into one letter, P for "projection"). It
+maps a 3D point to its pixel:   x ~ P X.  There is one per photo:
+
+      P1 = K1 [ I | 0 ]   (camera 1: the anchor - no turn, no shift)
+      P2 = K2 [ R | t ]   (camera 2: the R, t recovered in Step 4)
+
+Forward, P predicts the pixel of a known 3D point. Step 5 runs it BACKWARDS:
+the pixels are known (our clicks), P1 and P2 are known, and the unknown is X.
+
+HOW ONE POINT IS TRIANGULATED  (worked example, point P0)
+---------------------------------------------------------
+x ~ P X means x equals P X up to an unknown scale, because P X returns
+(a*u, a*v, a) and the real pixel is (u, v) = (P1_row . X / P3_row . X, ...).
+Clearing that division gives two linear equations PER camera:
+
+      (u * P_row3 - P_row1) . X = 0
+      (v * P_row3 - P_row2) . X = 0
+
+For P0 (clicked at (293,235) in photo 1 and (256,125) in photo 2) the four
+rows - two from each camera - stack into a 4x4 matrix Aq:
+
+      [ -1147.20      0.00   -185.00      0.00 ]
+      [     0.00  -1147.20   -106.50      0.00 ]
+      [  -886.83     25.13     74.07   -285.79 ]
+      [   -39.22   -887.38    -21.85    -84.02 ]
+
+We solve Aq X = 0 with SVD (the smallest-singular-value direction, as usual).
+The answer comes out in HOMOGENEOUS form Xh = (-0.128, -0.072, 0.789, 0.596)
+- a 4-number point defined up to scale; dividing by the 4th entry gives the
+real coordinates X = (-0.214, -0.121, 1.325). Repeat for all 24 shared points.
+
+THE RESULT  (24 points, arbitrary scale)
+----------------------------------------
+  id       X        Y        Z      reproj err (img1 / img2, pixels)
+  P0    -0.214   -0.121    1.325      1.73 / 1.34
+  P5     0.068   -0.105    0.492      6.28 / 2.79
+  P13    0.040   -0.011    1.439      0.01 / 0.01   <- near-perfect
+  P33    1.848    0.194    4.506      1.14 / 1.16
+  ... (full 24 saved in data/points3d.json)
+
+  reprojection error : img1 mean 2.68px (max 6.83) | img2 mean 2.02px (max 5.37)
+  points in front of BOTH cameras : 24 / 24   <- all physically valid
+  depth (Z) range : 0.49 to 4.51             <- real depth spread, not a flat wall
+
+QUALITY NOTES
+-------------
+- Reprojection error is a ROUND-TRIP check on each point. Triangulation went
+  backwards (pixels -> 3D); this goes forwards again (3D -> pixels) and sees
+  if we land back on the original click:
+
+      your click  --triangulate-->  3D point X  --project-->  predicted pixel
+        (u, v)                                                    (u^, v^)
+
+      reprojection error = pixel distance between (u, v) and (u^, v^)
+
+  "project" is just x = P X (push X through the camera, divide out the scale);
+  the ^ marks the prediction. Example, P0: clicked (293,235), predicted
+  (292.6,236.7) -> gap = sqrt(0.4^2 + 1.7^2) = 1.73px. A perfect
+  reconstruction would give 0; the leftover gap comes from the assumed focal,
+  small R/t errors, and the two sightlines not crossing exactly.
+
+WHAT THIS STEP PRODUCED
+-----------------------
+  - step5_point_cloud.py : triangulates the seed pair's shared points (reuses
+                           geometry.triangulate + reprojection_error).
+  - data/points3d.json   : the first 3D cloud - per point (X,Y,Z) and its
+                           reprojection error, plus a summary block.
 
 ################################################################################
 #  NEXT STEPS  (BACKLOG - not done yet; the top item is what we do next)       #
 ################################################################################
 
-  [ ] STEP 5: triangulate the first cloud of 3D points from the seed pair
-      (the 24 shared points -> their (X, Y, Z) positions).
   [ ] STEP 6: add the remaining 12 photos one at a time.
   [ ] STEP 7: bundle adjustment (refine everything together).
   [ ] STEP 8: compute and report the error values.

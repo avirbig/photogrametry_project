@@ -1,5 +1,5 @@
 """
-run_step4.py
+step4_seed_pose.py
 Step 4 - Seed pair: recover the relative pose (rotation R and translation
 direction t) of the second seed camera relative to the first, from their
 shared marked points.
@@ -12,7 +12,7 @@ we FIX an initial focal by a normal-lens assumption (f = 1.2 * max(width,
 height) pixels) and let bundle adjustment (Step 7) refine it later.
 
 Run:
-    .venv/Scripts/python.exe run_step4.py
+    .venv/Scripts/python.exe step4_seed_pose.py
 """
 from __future__ import annotations
 import json
