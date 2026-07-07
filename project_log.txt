@@ -115,8 +115,8 @@ The project follows the 9 steps in the guide "From Old Photos to 3D".
   6. Add remaining photos one at a time             DONE (12/14; 3 oblique
      (resection + triangulation; +6b essential)        provisional, 2 deferred
                                                         to Step 7)
-  7. Bundle adjustment: refine all cameras and      NOT STARTED
-     points together (least-squares best fit)
+  7. Bundle adjustment: refine all cameras and      DONE (8.2->4.7px;
+     points together (least-squares best fit)          8 focals solved)
   8. Read off the error values                      NOT STARTED
   9. Re-express everything in the points' own       NOT STARTED
      coordinate frame (centre + spread directions)
@@ -1008,15 +1008,83 @@ WHAT THIS STEP PRODUCED
   - data/cameras.json     : now 12 cameras; oblique ones carry provisional=true.
   - data/points3d.json    : cloud grown to 29 (now includes off-plane points).
 
+================================================================================
+STEP 7  -  BUNDLE ADJUSTMENT (refine everything together)   [date: 2026-07-07]
+================================================================================
+
+WHAT THIS STEP DOES
+-------------------
+Steps 4-6 built the reconstruction piece by piece, so small errors piled up and
+every focal length was still the 1.2*max(w,h) GUESS. Bundle adjustment refines
+everything at once - every camera's rotation, position and FOCAL, and every
+point's (X,Y,Z) - nudging them all together, always downhill, until the total
+reprojection error is as small as possible:
+
+      minimize  SUM over every (point, photo)  || predicted pixel - clicked ||^2
+
+THE MECHANISM
+-------------
+Same "feel the slope, then jump" idea as refine_pose (Levenberg-Marquardt), but
+now over ALL the unknowns jointly (here 161 numbers). Each round:
+  1. measure the error at the current guess,
+  2. for each unknown, a tiny wiggle tells which way and how far to nudge it
+     (direction from the slope's sign; distance from slope / how-fast-it-flattens),
+  3. all unknowns jump together in one step; repeat until nothing improves.
+Rotations are carried as rotation VECTORS (rotation_log / _rodrigues) so they can
+be nudged as three plain numbers yet stay valid rotations.
+
+THREE DESIGN CHOICES THAT MATTER
+--------------------------------
+1. ANCHOR. Camera 01 is held completely fixed. The whole scene can otherwise
+   slide, spin and resize freely without changing any photo (7 free directions);
+   pinning one camera removes them so the solution is well-defined.
+2. FOCAL PRIOR. A gentle log-space pull keeps focals near their guess. It is
+   negligible when the data firmly determines a focal, but stops the "focal-depth
+   degeneracy" - a huge focal with far points looks the same as a normal focal
+   with near points - from letting a focal run off to infinity.
+3. HOLD THE OBLIQUE FOCALS. Even with the prior, the provisional oblique views'
+   focals are essentially UNOBSERVABLE (single weak view -> the degeneracy is too
+   strong). A "sharp" focal of 6000+ for a snapshot is just overfitting. So their
+   focals are HELD at the guess and only their pose is refined. Only the 8
+   well-constrained frontal focals are actually solved.
+
+THE RESULT
+----------
+  reprojection mean:  8.21px  ->  4.68px   (whole reconstruction)
+  well-constrained (frontal) cameras only:  3.53px mean
+  focals refined to sensible corrections (a few examples):
+      04_front_elevated   883 ->  911        02_front_wide    614 ->  687
+      06_front_flags     1144 -> 1672        13_front_heavy   373 ->  666
+      03_front_postcard  3600 -> 4248        (07,08,11 focals held; pose refined)
+
+THE REGISTER <-> REFINE LOOP (an honest limit)
+----------------------------------------------
+After this refinement, re-running Step 6b DID rescue 09_diagonal_left_bw (the
+refined neighbours gave it a foothold) -> 13/14. But 09 came in at ~24px and a
+further bundle-adjust pass got WORSE overall (4.7 -> 7.3px): 09 is so weakly
+constrained it drags the whole fit down. And 10_diagonal_left never registers at
+all. So the honest best result is 12/14 cameras: the two most-oblique views are
+past what this hand-marked, focal-unknown dataset can support, and forcing them
+in hurts more than it helps. (This is exactly the real Structure-from-Motion loop
+- register, refine, register - and knowing when to STOP is part of it.)
+
+WHAT THIS STEP PRODUCED
+-----------------------
+  - src/geometry.py       : added rotation_log (matrix -> rotation vector) for
+                            the joint optimizer.
+  - step7_bundle_adjust.py: the whole-scene Levenberg-Marquardt refinement.
+  - data/cameras.json     : focals now SOLVED (not guessed) for the 8 well-
+                            constrained cameras; poses refined for all 12.
+  - data/points3d.json    : the 29-point cloud, refined; per-point error updated.
+
 ################################################################################
 #  NEXT STEPS  (BACKLOG - not done yet; the top item is what we do next)       #
 ################################################################################
 
-  [ ] STEP 7: bundle adjustment (refine focals + all cameras + points together).
-      Should sharpen the 3 provisional oblique views AND let 09, 10 register on
-      a re-run of Step 6b (they are focal-limited, not geometry-limited).
-  [ ] STEP 8: compute and report the error values.
-  [ ] STEP 9: re-express the result in the points' own coordinate frame.
+  [ ] STEP 8: compute and report the error values (per-point pixel error + a
+      3D uncertainty per point) - most of it falls straight out of Step 7.
+  [ ] STEP 9: re-express the result in the points' own coordinate frame
+      (origin = point average; axes = point spread directions).
 
 ################################################################################
 #  END OF LOGBOOK                                                              #

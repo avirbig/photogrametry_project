@@ -192,6 +192,18 @@ def _rodrigues(w):
     return np.eye(3) + np.sin(th) * k + (1 - np.cos(th)) * (k @ k)
 
 
+def rotation_log(R):
+    """Inverse of _rodrigues: turn a rotation matrix into its rotation vector
+    (axis * angle). Lets bundle adjustment treat a rotation as three plain
+    numbers it can nudge."""
+    c = (np.trace(R) - 1) / 2
+    ang = np.arccos(np.clip(c, -1, 1))
+    if ang < 1e-8:
+        return np.zeros(3)
+    return ang / (2 * np.sin(ang)) * np.array(
+        [R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
+
+
 def refine_pose(R, t, X, x, K, iters=100):
     """
     Nudge (R, t) to minimize the reprojection error - the DLT resection gives a
